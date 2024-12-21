@@ -7,7 +7,7 @@ import PaymentItem from './PaymentItem';
 const DisplayPaymentsAnother = ({ title, isLoading, payments }) => {
 
   return (
-    <div>
+    <div> 
       <h1 className="font-epilogue font-semibold text-[18px] text-white text-left">{title} ({payments?.length})</h1>
 
       <div className="flex flex-col mt-[20px] gap-[26px]">
@@ -21,7 +21,7 @@ const DisplayPaymentsAnother = ({ title, isLoading, payments }) => {
           </p>
         )}
 
-        
+
 
         {!isLoading && payments && payments.length > 0 && payments.map((payment) => <PaymentItem
           key={payment.timestamp}
