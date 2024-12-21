@@ -99,7 +99,7 @@ const CreateCampaign = () => {
           />
 
         <label className="flex-1 w-full">   
-            <span className="font-epilogue font-medium text-[14px] text-[#808191]">Show Time</span>
+            <span className="font-epilogue font-medium text-[14px] text-[#808191]">Show Time (Time is set according to UTC) [Current time - 5:30] </span>
             <input 
               
               value={checkboxValue}

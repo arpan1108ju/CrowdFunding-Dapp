@@ -51,6 +51,8 @@ const initialize = async () => {
 const requestAccount = async () => {
   try {
     const accounts = await provider.send("eth_requestAccounts", []);
+    // console.log('all accounts');
+    // console.log(accounts);
     setAccount(accounts[0]);
     console.log('Got address',accounts[0]);
     return accounts[0]; // Return the first account
@@ -107,10 +109,13 @@ const requestAccount = async () => {
   const withdraw = async (campaignId) => {
     console.log('In withdraw got ',campaignId);
     try {
-      const tx = await contract.withdraw(campaignId);
+      const tx = await contract.withdraw(campaignId, {gasLimit: 500000});
       await tx.wait();
       alert("Withdrawn successful!");
     } catch (error) {
+      if (error.message.includes('revert')) {
+        console.log('Function reverted!', error.message);  
+      }
       alert("Failed to withdraw!");
       console.error("Error withdraw(No worry ! console error enabled):", error);
     }
@@ -131,11 +136,11 @@ const requestAccount = async () => {
   // Fetch All Campaigns
   const getCampaigns = async () => {
     try {
-      console.log('getting campaigns ...')
+      // console.log('getting campaigns ...')
       const campaigns = await contract.getCampaigns();
 
-      console.log('here got ')
-      console.log(`${campaigns}`);
+      // console.log('here got ')
+      // console.log(`${campaigns}`);
 
       return campaigns.map((campaign, i) => {
         return {

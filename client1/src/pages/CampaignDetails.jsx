@@ -27,6 +27,11 @@ const CampaignDetails = () => {
 
   useEffect(() => {
     if(contract) fetchDonators();
+
+    // console.log('time diff = ',timeDifference(campaignState.deadline));
+    console.log('Now      ',Date.now());
+    console.log('Deadline ',new Date(campaignState.deadline).getTime());
+
   }, [contract, account])
 
 
@@ -56,6 +61,8 @@ const CampaignDetails = () => {
     navigate('/')
     setIsLoading(false);
   }
+
+
 
   return (
     <div>
@@ -144,7 +151,7 @@ const CampaignDetails = () => {
                 title="Fund Campaign"
                 styles="w-full bg-[#8c6dfd] mb-4 "
                 handleClick={handleDonate}
-                disabled={timeDifference(campaignState.deadline) <= 0}
+                disabled={timeDifference(campaignState.deadline) <= 0 || campaignState.canceled}
               />
               <CustomButton 
                 btnType="button"

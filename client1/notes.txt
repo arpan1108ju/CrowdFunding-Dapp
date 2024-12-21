@@ -1,0 +1,5 @@
+current time = 8:45 pm 
+gmt == 3:15 pm -> 15:15 --> deployment time
+
+withdraw test 
+9:00 pm -> 3:30 -> 15:30  
