@@ -1,9 +1,14 @@
 export const daysLeft = (deadline) => {
-  const difference = new Date(deadline).getTime() - Date.now();
+  let difference = new Date(deadline).getTime() - Date.now();
+  if(difference <= 0) difference = -difference;
   const remainingDays = difference / (1000 * 3600 * 24);
 
   return remainingDays.toFixed(0);
 };
+
+export const timeDifference = (deadline) => {
+   return new Date(deadline).getTime() - Date.now();
+}
 
 export const calculateBarPercentage = (goal, raisedAmount) => {
   const percentage = Math.round((raisedAmount * 100) / goal);
@@ -20,3 +25,21 @@ export const checkIfImage = (url, callback) => {
   img.onload = () => callback(true);
   img.onerror = () => callback(false);
 };
+
+export const isEqual = (first,second) => {
+   return first && second && first.toLowerCase() === second.toLowerCase();
+}
+
+export const convertTimeToMs = (timeInput) => {
+  const regex = /^(\d{2}):(\d{2}):(\d{2})\.(\d{3})$/;
+
+  const match = timeInput.match(regex);
+  if (match) {
+      const [_, hours, minutes, seconds, milliseconds] = match.map(Number);
+
+      const totalMilliseconds = (hours * 3600 + minutes * 60 + seconds) * 1000 + milliseconds;
+      console.log(`Time in milliseconds: ${totalMilliseconds}`);
+      return totalMilliseconds;
+  } 
+  return 0;
+}

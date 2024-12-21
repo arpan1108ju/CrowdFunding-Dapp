@@ -12,9 +12,19 @@ contract CrowdFunding {
         string image;
         address[] donators;
         uint256[] donations;
+        bool withdrawn; // To track if funds have been withdrawn
+        bool canceled;
+    }
+
+    struct PaymentDetail {
+        uint256 campaignId;
+        uint256 amount;
+        uint256 timestamp;
+        bool isDonation; // true if donation, false if withdrawal
     }
 
     mapping(uint256 => Campaign) public campaigns; // id to campaign
+    mapping(address => PaymentDetail[]) public userPayments; // user address to their payment history
 
     uint256 public numberOfCampaigns = 0;
 
@@ -39,6 +49,10 @@ contract CrowdFunding {
         uint256 amountCollected
     );
 
+    event FundsWithdrawn(uint256 indexed campaignId, uint256 amount);
+    event CampaignCanceled(uint256 indexed campaignId);
+
+    // Function to create a campaign
     function createCampaign(
         address _owner,
         string memory _title,
@@ -50,7 +64,7 @@ contract CrowdFunding {
         Campaign storage campaign = campaigns[numberOfCampaigns];
 
         require(_deadline > block.timestamp, "The deadline should be a date in the future.");
-        require(_owner == msg.sender, "only owner creates the contract");
+        require(_owner == msg.sender, "Only owner creates the campaign");
 
         campaign.owner = _owner;
         campaign.title = _title;
@@ -59,6 +73,8 @@ contract CrowdFunding {
         campaign.deadline = _deadline;
         campaign.amountCollected = 0;
         campaign.image = _image;
+        campaign.withdrawn = false;
+        campaign.canceled = false;
 
         emit CampaignCreated(
             numberOfCampaigns,
@@ -74,6 +90,7 @@ contract CrowdFunding {
         return numberOfCampaigns - 1;
     }
 
+    // Function to donate to a campaign
     function donateToCampaign(uint256 _id) public payable {
         require(_id < numberOfCampaigns, "Invalid id");
 
@@ -81,22 +98,62 @@ contract CrowdFunding {
 
         Campaign storage campaign = campaigns[_id];
 
+        require(block.timestamp < campaign.deadline, "Cannot fund after the deadline");
         require(amount > 0, "Cannot donate 0 ether");
         require(campaign.amountCollected + amount <= campaign.target, "Should not exceed campaign target");
+        require(!campaign.canceled, "Cannot donate to a canceled campaign");
+
+        campaign.amountCollected += amount;
+        campaign.donators.push(msg.sender);
+        campaign.donations.push(amount);
+
+        // Add payment details for the donator
+        userPayments[msg.sender].push(PaymentDetail({
+            campaignId: _id,
+            amount: amount,
+            timestamp: block.timestamp,
+            isDonation: true
+        }));
+
+        emit DonationReceived(_id, msg.sender, amount);
+        emit CampaignAmountUpdated(_id, campaign.amountCollected);
+    }
+
+    // Function to withdraw funds (only by owner and after deadline)
+    function withdraw(uint256 _id) public {
+        Campaign storage campaign = campaigns[_id];
+
+        require(_id < numberOfCampaigns, "Invalid id");
+        require(msg.sender == campaign.owner, "Only the owner can withdraw");
+        require(block.timestamp >= campaign.deadline, "Cannot withdraw before the deadline");
+        require(!campaign.withdrawn, "Funds already withdrawn");
+        require(campaign.amountCollected > 0, "No funds to withdraw");
+
+        uint256 amount = campaign.amountCollected;
 
         (bool sent, ) = payable(campaign.owner).call{value: amount}("");
+        require(sent, "Withdrawal failed");
 
-        if (sent) {
-            campaign.amountCollected += amount;
-            campaign.donators.push(msg.sender);
-            campaign.donations.push(amount);
+        campaign.withdrawn = true;
 
-            emit DonationReceived(_id, msg.sender, amount);
-            emit CampaignAmountUpdated(_id, campaign.amountCollected);
-        }
-        else {
-           revert("Failed to send Ether to the campaign owner.");
-        }
+        // Add withdrawal details for the owner
+        userPayments[msg.sender].push(PaymentDetail({
+            campaignId: _id,
+            amount: amount,
+            timestamp: block.timestamp,
+            isDonation: false
+        }));
+
+        emit FundsWithdrawn(_id, amount);
+    }
+
+    // Function to get all payment details of a user
+    function paymentDetails(address _user)
+        public
+        view
+        returns (PaymentDetail[] memory)
+    {
+        return userPayments[_user];
     }
 
     function getDonators(uint256 _id)
@@ -108,15 +165,44 @@ contract CrowdFunding {
         return (campaigns[_id].donators, campaigns[_id].donations);
     }
 
+
+    // Function to get all campaigns
     function getCampaigns() public view returns (Campaign[] memory) {
         Campaign[] memory allCampaigns = new Campaign[](numberOfCampaigns);
 
         for (uint256 i = 0; i < numberOfCampaigns; i++) {
             Campaign storage item = campaigns[i];
-
             allCampaigns[i] = item;
         }
 
         return allCampaigns;
     }
+
+    function cancelCampaign(uint256 _id) public {
+        Campaign storage campaign = campaigns[_id];
+
+        require(_id < numberOfCampaigns, "Invalid id");
+        require(msg.sender == campaign.owner, "Only the owner can cancel the campaign");
+        require(!campaign.canceled, "Campaign is already canceled");
+
+        // may be a redundant case
+        // require(!campaign.withdrawn, "Cannot cancel a campaign after funds are withdrawn");
+        
+        require(block.timestamp < campaign.deadline, "Cannot cancel after the deadline");
+
+        // Refund all donors
+        for (uint256 i = 0; i < campaign.donators.length; i++) {
+            address donator = campaign.donators[i];
+            uint256 donationAmount = campaign.donations[i];
+
+            (bool refunded, ) = payable(donator).call{value: donationAmount}("");
+            require(refunded, "Refund failed for one of the donators");
+        }
+
+        campaign.canceled = true;
+
+        emit CampaignCanceled(_id);
+    }
+
+
 }

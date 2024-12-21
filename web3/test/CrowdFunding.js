@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { ethers } = require("hardhat");
+const { ethers , network } = require("hardhat");
 
 describe("CrowdFunding Contract", function () {
   let CrowdFunding;
@@ -216,4 +216,255 @@ describe("CrowdFunding Contract", function () {
     expect(campaigns[0].title).to.equal("Campaign 1");
     expect(campaigns[1].title).to.equal("Campaign 2");
   });
+
+  
+// === New Tests for `isDonation` ===
+it("should record donation payment details correctly", async function () {
+  const now = Math.floor(Date.now() / 1000);
+  const deadline = now + 3600;
+  const target = ethers.parseEther("5");
+
+  await crowdFunding.createCampaign(
+    owner.address,
+    "Support Education",
+    "A campaign for education support.",
+    target,
+    deadline,
+    "https://example.com/image.jpg"
+  );
+
+  const donationAmount = ethers.parseEther("2");
+  await crowdFunding
+    .connect(addr1)
+    .donateToCampaign(0, { value: donationAmount });
+
+  const payments = await crowdFunding.paymentDetails(addr1.address);
+
+  expect(payments.length).to.equal(1);
+  expect(payments[0].campaignId).to.equal(0);
+  expect(payments[0].amount.toString()).to.equal(donationAmount.toString());
+  expect(payments[0].isDonation).to.equal(true);
 });
+
+
+// === Existing and New Tests Together ===
+it("should fail to withdraw if already withdrawn", async function () {
+  const now = Math.floor(Date.now() / 1000);
+  const deadline = now + 3600;
+  const target = ethers.parseEther("5");
+
+  await crowdFunding.createCampaign(
+    owner.address,
+    "Duplicate Withdraw Test",
+    "A campaign for duplicate withdrawal testing.",
+    target,
+    deadline,
+    "https://example.com/image.jpg"
+  );
+
+  const donationAmount = ethers.parseEther("5");
+  await crowdFunding
+    .connect(addr1)
+    .donateToCampaign(0, { value: donationAmount });
+
+  // mine 1000 blocks with an interval of 1 minute
+  await network.provider.send("hardhat_mine", ["0x3e8", "0x3c"]);
+
+  const block = await ethers.provider.getBlock("latest");
+  // console.log('bl tsp 1 ',block.timestamp);
+
+  // Withdraw funds once
+  await crowdFunding.connect(owner).withdraw(0);
+
+  // Attempting to withdraw again should fail
+  await expect(crowdFunding.connect(owner).withdraw(0)).to.be.revertedWith(
+    "Funds already withdrawn"
+  );
+});
+
+
+
+it("should allow the owner to withdraw funds and record withdrawal details", async function () {
+  // console.log('bl tsp 2',block.timestamp);
+  // console.log('now ',Date.now());
+  const block = await ethers.provider.getBlock("latest");
+  const now = Math.floor(block.timestamp);
+  const deadline = now + 3600;
+  const target = ethers.parseEther("5");
+
+  await crowdFunding.createCampaign(
+    owner.address,
+    "Withdrawal Test",
+    "A campaign for withdrawal testing.",
+    target,
+    deadline,
+    "https://example.com/image.jpg"
+  );
+
+  const donationAmount = ethers.parseEther("5");
+  await crowdFunding
+    .connect(addr1)
+    .donateToCampaign(0, { value: donationAmount });
+
+  
+ // mine 1000 blocks with an interval of 1 minute
+  await network.provider.send("hardhat_mine", ["0x3e8", "0x3c"]);
+
+  // Withdraw funds
+  await crowdFunding.connect(owner).withdraw(0);
+
+  const payments = await crowdFunding.paymentDetails(owner.address);
+
+  // console.log('payment details');
+  // console.log(payments);
+
+  expect(payments.length).to.equal(1);
+  expect(payments[0].campaignId).to.equal(0);
+  expect(payments[0].amount.toString()).to.equal(donationAmount.toString());
+  expect(payments[0].isDonation).to.equal(false);
+});
+
+
+
+it("should allow the owner to cancel the campaign and refund all donators", async function () {
+  const block = await ethers.provider.getBlock("latest");
+  const now = Math.floor(block.timestamp);
+  const deadline = now + 3600;
+  const target = ethers.parseEther("5");
+
+  await crowdFunding.createCampaign(
+    owner.address,
+    "Cancel Test",
+    "A campaign to test cancellation.",
+    target,
+    deadline,
+    "https://example.com/image.jpg"
+  );
+
+  const donationAmount1 = ethers.parseEther("1");
+  const donationAmount2 = ethers.parseEther("2");
+
+  await crowdFunding.connect(addr1).donateToCampaign(0, { value: donationAmount1 });
+  await crowdFunding.connect(addr2).donateToCampaign(0, { value: donationAmount2 });
+
+  // Cancel the campaign
+  const tx = await crowdFunding.connect(owner).cancelCampaign(0);
+  const receipt = await tx.wait();
+
+  // Expect event
+  expect(receipt.logs[0].fragment.name).to.equal("CampaignCanceled");
+
+  // Check that the campaign is canceled
+  const campaign = await crowdFunding.campaigns(0);
+  expect(campaign.canceled).to.equal(true);
+
+  // Check if the funds have been refunded
+  const addr1BalanceAfter = await ethers.provider.getBalance(addr1.address);
+  const addr2BalanceAfter = await ethers.provider.getBalance(addr2.address);
+
+  // Ensure both donators were refunded
+  expect(addr1BalanceAfter).to.be.gt(donationAmount1); // Use Chai's BigNumber support
+  expect(addr2BalanceAfter).to.be.gt(donationAmount2);
+});
+
+it("should fail to cancel a non-existent campaign", async function () {
+  await expect(crowdFunding.connect(owner).cancelCampaign(99)).to.be.revertedWith("Invalid id");
+});
+
+it("should fail to cancel a campaign after the deadline", async function () {
+  const block = await ethers.provider.getBlock("latest");
+  const now = Math.floor(block.timestamp);
+  const deadline = now + 3600;
+  const target = ethers.parseEther("5");
+
+  await crowdFunding.createCampaign(
+    owner.address,
+    "Expired Campaign",
+    "A campaign that will expire before cancellation.",
+    target,
+    deadline,
+    "https://example.com/image.jpg"
+  );
+
+  const donationAmount = ethers.parseEther("1");
+  await crowdFunding.connect(addr1).donateToCampaign(0, { value: donationAmount });
+
+  // mine 1000 blocks with an interval of 1 minute
+  await network.provider.send("hardhat_mine", ["0x3e8", "0x3c"]);
+
+  // Attempting to cancel after the deadline should fail
+  await expect(crowdFunding.connect(owner).cancelCampaign(0)).to.be.revertedWith("Cannot cancel after the deadline");
+});
+
+// it("should fail to cancel a campaign if the owner already withdrew funds", async function () {
+//   const block = await ethers.provider.getBlock("latest");
+//   const now = Math.floor(block.timestamp);
+//   const deadline = now + 3600;
+//   const target = ethers.parseEther("5");
+
+//   await crowdFunding.createCampaign(
+//     owner.address,
+//     "Withdrawn Campaign",
+//     "A campaign to test cancel after withdrawal.",
+//     target,
+//     deadline,
+//     "https://example.com/image.jpg"
+//   );
+
+//   const donationAmount = ethers.parseEther("5");
+//   await crowdFunding.connect(addr1).donateToCampaign(0, { value: donationAmount });
+
+//   // mine 1000 blocks with an interval of 1 minute
+//   await network.provider.send("hardhat_mine", ["0x3e8", "0x3c"]);
+
+//   await crowdFunding.connect(owner).withdraw(0);
+
+//   // Attempting to cancel after withdrawal should fail
+//   await expect(crowdFunding.connect(owner).cancelCampaign(0)).to.be.revertedWith("Cannot cancel a campaign after funds are withdrawn");
+// });
+
+it("should fail to cancel a campaign if already canceled", async function () {
+  const block = await ethers.provider.getBlock("latest");
+  const now = Math.floor(block.timestamp);
+  const deadline = now + 3600;
+  const target = ethers.parseEther("5");
+
+  await crowdFunding.createCampaign(
+    owner.address,
+    "Already Canceled Campaign",
+    "A campaign that is already canceled.",
+    target,
+    deadline,
+    "https://example.com/image.jpg"
+  );
+
+  // Cancel the campaign once
+  await crowdFunding.connect(owner).cancelCampaign(0);
+
+  // Attempting to cancel again should fail
+  await expect(crowdFunding.connect(owner).cancelCampaign(0)).to.be.revertedWith("Campaign is already canceled");
+});
+
+it("should fail to cancel a campaign by a non-owner", async function () {
+  const block = await ethers.provider.getBlock("latest");
+  const now = Math.floor(block.timestamp);
+  const deadline = now + 3600;
+  const target = ethers.parseEther("5");
+
+  await crowdFunding.createCampaign(
+    owner.address,
+    "Non-Owner Cancel",
+    "A campaign that should not be canceled by non-owners.",
+    target,
+    deadline,
+    "https://example.com/image.jpg"
+  );
+
+  // Attempting to cancel by someone other than the owner should fail
+  await expect(crowdFunding.connect(addr1).cancelCampaign(0)).to.be.revertedWith("Only the owner can cancel the campaign");
+});
+
+
+
+});
+////////

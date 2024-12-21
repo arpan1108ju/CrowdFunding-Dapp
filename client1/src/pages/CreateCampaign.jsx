@@ -10,14 +10,16 @@ import { checkIfImage } from '../utils';
 const CreateCampaign = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [checkboxValue,setCheckboxValue] = useState(false);
   const { createCampaign } = useStateContext();
   const [form, setForm] = useState({
     name: '',
     title: '',
     description: '',
     target: '', 
-    deadline: '',
-    image: ''
+    deadline: (new Date()).toLocaleDateString('en-CA'),
+    image: '',
+    time : '00:00:00.000'
   });
 
   const handleFormFieldChange = (fieldName, e) => {
@@ -80,7 +82,7 @@ const CreateCampaign = () => {
           <h4 className="font-epilogue font-bold text-[25px] text-white ml-[20px]">You will get 100% of the raised amount</h4>
         </div>
 
-        <div className="flex flex-wrap gap-[40px]">
+        <div className="flex flex-col gap-[40px]">
           <FormField 
             labelName="Goal *"
             placeholder="ETH 0.50"
@@ -95,6 +97,28 @@ const CreateCampaign = () => {
             value={form.deadline}
             handleChange={(e) => handleFormFieldChange('deadline', e)}
           />
+
+        <label className="flex-1 w-full">   
+            <span className="font-epilogue font-medium text-[14px] text-[#808191]">Show Time</span>
+            <input 
+              
+              value={checkboxValue}
+              onChange={() => setCheckboxValue(!checkboxValue)}
+              type="checkbox"
+              className="ml-4 scale-110"
+            />
+          </label>
+
+          {checkboxValue && 
+            <FormField 
+              labelName="End Time *"
+              placeholder="End Time"
+              inputType="time"
+              value={form.time}
+              handleChange={(e) => handleFormFieldChange('time', e)}
+            />
+          }
+
         </div>
 
         <FormField 

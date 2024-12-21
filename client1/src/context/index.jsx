@@ -5,6 +5,7 @@ import { ethers } from 'ethers';
 import abi from "../utils/CrowdFunding_abi.json";
 import { BrowserProvider, Contract, parseEther, formatEther } from "ethers";
 import { CROWDFUNDING_CONTRACT_ADDRESS } from "../utils/constants";
+import { convertTimeToMs } from '../utils';
 
 
 const StateContext = createContext();
@@ -58,30 +59,32 @@ const requestAccount = async () => {
     return null;
   }
 };
-
-// export const withdrawFund = async (withdrawValue) => {
-    //   const ethValue = parseEther(withdrawValue);
-    //   const withdrawTx = await contract.withdraw(ethValue);
-    //   await withdrawTx.wait();
-    //   console.log("Withdrawal successful!");
-    // };
     
 
   const createCampaign = async (form) => {
     console.log('creating...')
+    console.log('Got date ',form.deadline);
+    console.log('Got time ',convertTimeToMs(form.time));
+    let deadline_to_send = new Date(form.deadline).getTime() + convertTimeToMs(form.time);
+    deadline_to_send = Math.round(deadline_to_send / 1000);
+
+    console.log('total ',deadline_to_send);
+
     try {
+
       const data = await contract.createCampaign(
 					account, 
 					form.title, 
 					form.description, 
 					form.target,
-					new Date(form.deadline).getTime(), 
+					deadline_to_send, 
 					form.image);
 
         await data.wait();
 
       console.log("contract call success", data)
     } catch (error) {
+      alert('Failed to create contract');
       console.log("contract call failure", error)
     }
   }
@@ -96,15 +99,34 @@ const requestAccount = async () => {
       await tx.wait();
       alert("Donation successful!");
     } catch (error) {
-      console.error("Error donating:", error);
       alert("Failed to donate!");
+      console.error("Error donating:", error);
     }
   };
-  //   const donate = async (pId, amount) => {
-//     const data = await contract.call('donateToCampaign', [pId], { value: ethers.utils.parseEther(amount)});
 
-//     return data;
-//   }
+  const withdraw = async (campaignId) => {
+    console.log('In withdraw got ',campaignId);
+    try {
+      const tx = await contract.withdraw(campaignId);
+      await tx.wait();
+      alert("Withdrawn successful!");
+    } catch (error) {
+      alert("Failed to withdraw!");
+      console.error("Error withdraw(No worry ! console error enabled):", error);
+    }
+  };
+
+  const cancel = async (campaignId) => {
+    console.log('In Cancel got ',campaignId);
+    try {
+      const tx = await contract.cancelCampaign(campaignId);
+      await tx.wait();
+      alert("Cancelation successful!");
+    } catch (error) {
+      alert("Failed to cancel!");
+      console.error("Error cancel(No worry ! console error enabled):", error);
+    }
+  };
   
   // Fetch All Campaigns
   const getCampaigns = async () => {
@@ -121,35 +143,20 @@ const requestAccount = async () => {
             title: campaign.title,
             description: campaign.description,
             target: ethers.formatEther(campaign.target.toString()), // Ensure BigInt is converted to string first
-            deadline: new Date(Number(campaign.deadline)).toLocaleString(),
+            deadline: new Date(Number(campaign.deadline) * 1000).toLocaleString(),
             amountCollected: ethers.formatEther(campaign.amountCollected.toString()), // Convert BigInt to string
             image: campaign.image,
             donators: campaign.donators,
             donations: campaign.donations.map((donation) => ethers.formatEther(donation.toString())), // Convert BigInt to string for each donation
-            pId: i
+            pId: i,
+            canceled : campaign.canceled,
+            withdrawn : campaign.withdrawn
         };
     });    
     } catch (error) {
       console.error("Error fetching campaigns:", error);
     }
   };
-  //   const getCampaigns = async () => {
-//     const campaigns = await contract.call('getCampaigns');
-
-//     const parsedCampaings = campaigns.map((campaign, i) => ({
-//       owner: campaign.owner,
-//       title: campaign.title,
-//       description: campaign.description,
-//       target: ethers.utils.formatEther(campaign.target.toString()),
-//       deadline: campaign.deadline.toNumber(),
-//       amountCollected: ethers.utils.formatEther(campaign.amountCollected.toString()),
-//       image: campaign.image,
-//       pId: i
-//     }));
-
-//     return parsedCampaings;
-//   }
-  
   // Fetch Donators of a Campaign
   const getDonations = async (campaignId) => {
     console.log(campaignId)
@@ -166,25 +173,13 @@ const requestAccount = async () => {
       console.error("Error fetching donators:", error);
     }
   }
-    //   const getDonations = async (pId) => {
-//     const donations = await contract.call('getDonators', [pId]);
-//     const numberOfDonations = donations[0].length;
-
-//     const parsedDonations = [];
-
-//     for(let i = 0; i < numberOfDonations; i++) {
-//       parsedDonations.push({
-//         donator: donations[0][i],
-//         donation: ethers.utils.formatEther(donations[1][i].toString())
-//       })
-//     }
-
-//     return parsedDonations;
-//   }
 
 
   const getUserCampaigns = async (_account) => {
     try {
+
+      if(!_account) throw new Error("Not logged in");
+
       const allCampaigns = await contract.getCampaigns();
 
       const filteredCampaigns = allCampaigns.filter((campaign) => {
@@ -197,12 +192,14 @@ const requestAccount = async () => {
             title: campaign.title,
             description: campaign.description,
             target: ethers.formatEther(campaign.target.toString()), // Ensure BigInt is converted to string first
-            deadline: new Date(Number(campaign.deadline)).toLocaleString(),
+            deadline: new Date(Number(campaign.deadline) * 1000).toLocaleString(),
             amountCollected: ethers.formatEther(campaign.amountCollected.toString()), // Convert BigInt to string
             image: campaign.image,
             donators: campaign.donators,
             donations: campaign.donations.map((donation) => ethers.formatEther(donation.toString())), // Convert BigInt to string for each donation
-            pId: i
+            pId: i,
+            canceled : campaign.canceled,
+            withdrawn : campaign.withdrawn
         };
     });
       
@@ -210,9 +207,34 @@ const requestAccount = async () => {
       return filteredCampaigns;
 
     } catch (error) {
-      console.error("Error fetching campaigns:", error);
+      console.log("Error fetching campaigns:", error);
     }
   }
+
+  const getPaymentDetailsUser = async (_account) => {
+    try {
+      if(!_account) throw new Error("Not logged in");
+
+      const paymentDetails = await contract.paymentDetails(_account);
+
+      console.log('here got in payment')
+      console.log(`${paymentDetails}`);
+
+      return paymentDetails.map( paymentDetail => {
+
+        return {
+            pId : Number(paymentDetail.campaignId).toString(),
+            amount: ethers.formatEther(paymentDetail.amount.toString()), // Convert BigInt to string
+            timestamp: new Date(Number(paymentDetail.timestamp) * 1000).toLocaleString(),
+            isDonation: paymentDetail.isDonation
+        };
+    });    
+    } catch (error) {
+      console.log("Error fetching paymentDetails:", error);
+    }
+  }
+
+ 
 
 
 
@@ -259,7 +281,10 @@ const requestAccount = async () => {
         donate,
         getDonations,
         requestAccount,
-        setAccount
+        setAccount,
+        getPaymentDetailsUser,
+        withdraw,
+        cancel
       }}
     >
       {children}

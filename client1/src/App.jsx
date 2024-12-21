@@ -9,9 +9,9 @@ import { Route, Routes } from 'react-router-dom';
 
 import { Sidebar, Navbar } from './components';
 import { CampaignDetails, CreateCampaign, Home, Profile } from './pages';
-import Logout from "./pages/Logout";
 import Payment from "./pages/Payment";
-import Withdraw from "./pages/Withdraw";
+import Search from "./pages/Search";
+
 
 
 const App = () => {
@@ -66,13 +66,12 @@ const App = () => {
         <Navbar />
 
         <Routes>
-          <Route path="/" element={<Home account={account} />} />
-          <Route path="/profile" element={<Profile account={account} />} />
+          <Route path="/" element={<Home  />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/create-campaign" element={<CreateCampaign />} />
           <Route path="/campaign-details/:id" element={<CampaignDetails />} />
-          <Route path="/logout" element={<Logout />} />
+          <Route path="/search/:id" element={<Search />} />
           <Route path="/payment" element={<Payment />} />
-          <Route path="/withdraw" element={<Withdraw />} />
         </Routes>
       </div>
     </div>

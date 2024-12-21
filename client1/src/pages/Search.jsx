@@ -2,33 +2,39 @@ import React, { useState, useEffect } from 'react'
 
 import { DisplayCampaigns } from '../components';
 import { useStateContext } from '../context'
+import { useLocation } from 'react-router-dom';
 
-const Profile = () => {
+const Search = () => {
+
+  const {state} = useLocation();
+
+  const query = state.query;
+
   const [isLoading, setIsLoading] = useState(false);
   const [campaigns, setCampaigns] = useState([]);
 
-  const { address, contract, getUserCampaigns,account } = useStateContext();
-
-  const title = account ? "All Campaigns of User " + account : "You are not logged in. To Log in connect wallet";
+  const { contract, getCampaigns,account } = useStateContext();
 
   const fetchCampaigns = async () => {
     setIsLoading(true);
-    const data = await getUserCampaigns(account);
+    let data = await getCampaigns();
+    data = data.filter((camp) => camp.title === query);
     setCampaigns(data);
     setIsLoading(false);
   }
 
   useEffect(() => {
+
     if(contract) fetchCampaigns();
-  }, [address, contract]);
+  }, [account, contract]);
 
   return (
     <DisplayCampaigns 
-      title={title}
+      title="Searched Campaigns"
       isLoading={isLoading}
       campaigns={campaigns}
     />
   )
 }
 
-export default Profile
+export default Search

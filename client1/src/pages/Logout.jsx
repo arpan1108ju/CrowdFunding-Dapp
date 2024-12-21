@@ -5,19 +5,23 @@ import { useNavigate } from 'react-router-dom';
 
 const Logout = () => {
 
-  const { disconnect,account } = useStateContext();
+  const { disconnect,account,connect } = useStateContext();
 
   const navigate = useNavigate();
 
   return (
     <div className="flex justify-center items-center mt-[40px]">
+
                 <CustomButton 
                   btnType="submit"
                   title={account ? 'Log out' : 'Connect'}
                   styles={'bg-[#8c6dfd]'}
                   handleClick={() => {
-                        if(account) disconnect();
-                        navigate('/');
+                        if(account){
+                           disconnect();
+                          
+                        }
+                        else connect();
                   }}
                 />
     </div>

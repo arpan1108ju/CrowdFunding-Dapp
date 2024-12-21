@@ -4,13 +4,13 @@ import { ethers } from 'ethers';
 
 import { useStateContext } from '../context';
 import { CountBox, CustomButton, Loader } from '../components';
-import { calculateBarPercentage, daysLeft } from '../utils';
+import { calculateBarPercentage, daysLeft, isEqual, timeDifference } from '../utils';
 import { thirdweb } from '../assets';
 
 const CampaignDetails = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { donate, getDonations, contract, address } = useStateContext();
+  const { donate, getDonations, contract, account,withdraw,cancel } = useStateContext();
 
   const campaignState = JSON.parse(state);
 
@@ -27,12 +27,31 @@ const CampaignDetails = () => {
 
   useEffect(() => {
     if(contract) fetchDonators();
-  }, [contract, address])
+  }, [contract, account])
+
 
   const handleDonate = async () => {
     setIsLoading(true);
 
     await donate(campaignState.pId, amount); 
+
+    navigate('/')
+    setIsLoading(false);
+  }
+
+  const handleWithdraw = async () => {
+    setIsLoading(true);
+
+    await withdraw(campaignState.pId); 
+
+    navigate('/')
+    setIsLoading(false);
+  }
+
+  const handleCancel = async () => {
+    setIsLoading(true);
+
+    await cancel(campaignState.pId); 
 
     navigate('/')
     setIsLoading(false);
@@ -123,8 +142,23 @@ const CampaignDetails = () => {
               <CustomButton 
                 btnType="button"
                 title="Fund Campaign"
-                styles="w-full bg-[#8c6dfd]"
+                styles="w-full bg-[#8c6dfd] mb-4 "
                 handleClick={handleDonate}
+                disabled={timeDifference(campaignState.deadline) <= 0}
+              />
+              <CustomButton 
+                btnType="button"
+                title="Withdraw"
+                styles="w-full bg-[#fc8403] mb-4"
+                handleClick={handleWithdraw}
+                disabled={!isEqual(account,campaignState.owner) || timeDifference(campaignState.deadline) >= 0 || campaignState.withdrawn }
+              />
+              <CustomButton 
+                btnType="button"
+                title="Cancel"
+                styles="w-full bg-[#fc1803] mb-4 "
+                handleClick={handleCancel}
+                disabled={!isEqual(account,campaignState.owner) || timeDifference(campaignState.deadline) <= 0 || campaignState.canceled}
               />
             </div>
           </div>
