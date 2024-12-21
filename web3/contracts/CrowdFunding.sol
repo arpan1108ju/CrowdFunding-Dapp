@@ -98,7 +98,7 @@ contract CrowdFunding {
 
         Campaign storage campaign = campaigns[_id];
 
-        require(block.timestamp < campaign.deadline, "Cannot fund after the deadline");
+        // require(block.timestamp < campaign.deadline, "Cannot fund after the deadline");
         require(amount > 0, "Cannot donate 0 ether");
         require(campaign.amountCollected + amount <= campaign.target, "Should not exceed campaign target");
         require(!campaign.canceled, "Cannot donate to a canceled campaign");
