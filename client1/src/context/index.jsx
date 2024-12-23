@@ -5,7 +5,11 @@ import { ethers } from 'ethers';
 import abi from "../utils/CrowdFunding_abi.json";
 import { BrowserProvider, Contract, parseEther, formatEther } from "ethers";
 import { CROWDFUNDING_CONTRACT_ADDRESS } from "../utils/constants";
-import { convertTimeToMs } from '../utils';
+import { convertTimeToMs, EVENTS, isEqual, reverseSortByPId } from '../utils';
+import { toast } from 'react-toastify';
+
+
+
 
 
 const StateContext = createContext();
@@ -20,10 +24,9 @@ const [contract, setContract] = useState(null);
 const [account, setAccount] = useState(null);
 
 
+
 // Function to initialize the provider, signer, and contract
 const initialize = async () => {
-
-  console.log('before init')
 
   if (typeof window.ethereum !== "undefined") {
     const new_provider = new BrowserProvider(window.ethereum);
@@ -34,44 +37,42 @@ const initialize = async () => {
     setSigner(new_signer);
     setContract(new_contract);
 
-    console.log('Got provider',new_provider);
-    console.log('Got signer',new_signer);
-    console.log('Got contract',new_contract);
-    
-
   } else {
+    toast.error("Please install MetaMask!");
     console.error("Please install MetaMask!");
   }
 };
 
-// Initialize once when the module is loaded
-// initialize();
 
 
 const requestAccount = async () => {
+  await initialize();
   try {
     const accounts = await provider.send("eth_requestAccounts", []);
     setAccount(accounts[0]);
     console.log('Got address',accounts[0]);
-    return accounts[0]; // Return the first account
+    return accounts[0]; 
   } catch (error) {
+    // toast.error(error.message);
     console.error("Error requesting account:", error.message);
     return null;
   }
 };
     
+  const check_for_account = () => {
+     if(!account) throw new Error("Not logged in.");
+  }
+
 
   const createCampaign = async (form) => {
-    console.log('creating...')
-    console.log('Got date ',form.deadline);
-    console.log('Got time ',convertTimeToMs(form.time));
+    
+    
     let deadline_to_send = new Date(form.deadline).getTime() + convertTimeToMs(form.time);
     deadline_to_send = Math.round(deadline_to_send / 1000);
-
-    console.log('total ',deadline_to_send);
-
+    
     try {
-
+      
+      check_for_account();
       const data = await contract.createCampaign(
 					account, 
 					form.title, 
@@ -82,62 +83,91 @@ const requestAccount = async () => {
 
         await data.wait();
 
-      console.log("contract call success", data)
+      // console.log("contract call success", data);
     } catch (error) {
-      alert('Failed to create contract');
-      console.log("contract call failure", error)
+      
+      if (error.message?.includes('revert')) {
+        toast.error(error.message);
+        console.error('Function reverted!', error.message);  
+      }
+      else{
+        toast.error('Failed to create contract!');
+        console.error("contract call failure", error);
+      }
+      
     }
   }
 
 
    const donate = async (campaignId, amount) => {
-    try {
+     
+     try {
+      check_for_account();
+
       const tx = await contract.donateToCampaign(campaignId, {
         value: ethers.parseEther(amount),
       });
   
       await tx.wait();
-      alert("Donation successful!");
+      // alert("Donation successful!");
     } catch (error) {
-      alert("Failed to donate!");
-      console.error("Error donating:", error);
+      if (error.message?.includes('revert')) {
+        toast.error(error.message);
+        console.error('Function reverted!', error.message);  
+      }
+      else{
+        // toast.error('Failed to donate!');
+        toast.error(error.message);
+        console.error("contract call failure", error);
+      }
     }
   };
 
   const withdraw = async (campaignId) => {
-    console.log('In withdraw got ',campaignId);
+    
     try {
-      const tx = await contract.withdraw(campaignId);
+      check_for_account();
+      const tx = await contract.withdraw(campaignId, {gasLimit: 500000});
       await tx.wait();
-      alert("Withdrawn successful!");
+      // alert("Withdrawn successful!");
     } catch (error) {
-      alert("Failed to withdraw!");
-      console.error("Error withdraw(No worry ! console error enabled):", error);
-    }
-  };
+      if (error.message?.includes('revert')) {
+        toast.error(error.message);
+        console.error('Function reverted!', error.message);  
+      }
+      else{
+        toast.error('Failed to withdraw!');
+        console.error("contract call failure", error);
+      }
+    };
+  }
 
   const cancel = async (campaignId) => {
-    console.log('In Cancel got ',campaignId);
+    
     try {
+      check_for_account();
       const tx = await contract.cancelCampaign(campaignId);
       await tx.wait();
       alert("Cancelation successful!");
     } catch (error) {
-      alert("Failed to cancel!");
-      console.error("Error cancel(No worry ! console error enabled):", error);
+      if (error.message?.includes('revert')) {
+        const {reason} = await errorDecoder.decode(error); 
+        toast.error(error.message);
+        console.error('Function reverted!', reason );  
+      }
+      else{
+        toast.error('Failed to cancel contract!');
+        console.error("contract call failure", error);
+      }
     }
   };
   
   // Fetch All Campaigns
   const getCampaigns = async () => {
+
     try {
-      console.log('getting campaigns ...')
       const campaigns = await contract.getCampaigns();
-
-      console.log('here got ')
-      console.log(`${campaigns}`);
-
-      return campaigns.map((campaign, i) => {
+      const allCampaigns = campaigns.map((campaign, i) => {
         return {
             owner: campaign.owner,
             title: campaign.title,
@@ -152,40 +182,40 @@ const requestAccount = async () => {
             canceled : campaign.canceled,
             withdrawn : campaign.withdrawn
         };
-    });    
+    });
+      return reverseSortByPId(allCampaigns);
+
     } catch (error) {
+      toast.error(error.message);
       console.error("Error fetching campaigns:", error);
     }
   };
-  // Fetch Donators of a Campaign
+  
   const getDonations = async (campaignId) => {
-    console.log(campaignId)
+    
     try {
       const [donators, donations] = await contract.getDonators(campaignId);
-    
-      console.log("Donators:", donators);
-      console.log("Donations:", donations);
       return donators.map((donator, i) => ({
         donator,
         donation: ethers.formatEther(donations[i].toString()),
       }));
     } catch (error) {
+      toast.error(error.message);
       console.error("Error fetching donators:", error);
     }
   }
 
 
-  const getUserCampaigns = async (_account) => {
+  const getUserCampaigns = async () => {
+    
     try {
-
-      if(!_account) throw new Error("Not logged in");
+      
+      check_for_account();
 
       const allCampaigns = await contract.getCampaigns();
 
       const filteredCampaigns = allCampaigns.filter((campaign) => {
-        console.log(campaign.owner);
-        console.log(_account); 
-        return campaign.owner.toLowerCase() === _account.toLowerCase();
+        return campaign.owner.toLowerCase() === account.toLowerCase();
       }).map((campaign, i) => {
         return {
             owner: campaign.owner,
@@ -204,23 +234,21 @@ const requestAccount = async () => {
     });
       
   
-      return filteredCampaigns;
+      return reverseSortByPId(filteredCampaigns);
 
     } catch (error) {
+      toast.error(error.message);
       console.log("Error fetching campaigns:", error);
     }
   }
 
-  const getPaymentDetailsUser = async (_account) => {
+  const getPaymentDetailsUser = async () => {
+    
     try {
-      if(!_account) throw new Error("Not logged in");
-
-      const paymentDetails = await contract.paymentDetails(_account);
-
-      console.log('here got in payment')
-      console.log(`${paymentDetails}`);
-
-      return paymentDetails.map( paymentDetail => {
+      check_for_account();
+      
+      const paymentDetails = await contract.paymentDetails(account);
+      const allPaymentDetails = paymentDetails.map( paymentDetail => {
 
         return {
             pId : Number(paymentDetail.campaignId).toString(),
@@ -229,22 +257,14 @@ const requestAccount = async () => {
             isDonation: paymentDetail.isDonation
         };
     });    
+
+    return reverseSortByPId(allPaymentDetails);
+
     } catch (error) {
+      toast.error(error.message);
       console.log("Error fetching paymentDetails:", error);
     }
   }
-
- 
-
-
-
-//   const getUserCampaigns = async () => {
-//     const allCampaigns = await getCampaigns();
-
-//     const filteredCampaigns = allCampaigns.filter((campaign) => campaign.owner === address);
-
-//     return filteredCampaigns;
-//   }
 
 
   const connect = async () => {
@@ -252,6 +272,7 @@ const requestAccount = async () => {
       const new_account = await requestAccount();
       setAccount(new_account);
     } catch (error) {
+      toast.error(error.message);
       console.error("Failed to connect wallet:", error);
     }
   }
@@ -260,13 +281,76 @@ const requestAccount = async () => {
     try {
       setAccount(null);
     } catch (error) {
+      toast.error(error.message);
       console.error("Failed to disconnect wallet:", error);
     }
   }
 
 
+  //********************************** EVENT ******************************************* */
+   const campaign_create_listener = async(numberOfCampaigns,_owner,_title,_target,_deadline,_image,event) => {  
+   
+    if(isEqual(_owner,account)){
+      toast.success('Campaign created successfully.');
+    }
+  }
 
+   const donation_received_listener = async(_campaignId, _donator, _amount, event) => {
+    // if(isEqual(_donator,account) || isEqual(_owner,account)){
+    //   toast.success('Donation received successfully.');
+    // }
+    if(isEqual(_donator,account)){
+      toast.success(`Donation received for id-${_campaignId} successfully.`);
+    }
 
+  };
+
+  const campaign_amount_updated_listener = async(_campaignId, _amountCollected, event) => {
+    // if(isEqual(_owner,account)){
+      toast.success(`Campaign fund for id-${_campaignId} updated successfully.`);
+    // }
+  };
+
+  const funds_withdrawn_listener = async(_campaignId, _amount, event) => {
+     // if(isEqual(_owner,account)){
+    toast.success(`Fund is withdrawn for id-${_campaignId} successfully.`);
+    // }
+  };
+
+  const campaign_canceled_listener = async(_campaignId, event) => {
+     // if(isEqual(_owner,account)){
+    toast.success(`Campaign with id-${_campaignId} canceled successfully.`);
+    // }
+  };
+  
+  const add_event_listener = () => {
+    if (contract) {
+      contract.on(EVENTS.CAMPAIGN_CREATED, campaign_create_listener);
+      contract.on(EVENTS.DONATION_RECEIVED, donation_received_listener);
+      contract.on(EVENTS.CAMPAIGN_AMOUNT_UPDATED, campaign_amount_updated_listener);
+      contract.on(EVENTS.FUNDS_WITHDRAWN, funds_withdrawn_listener);
+      contract.on(EVENTS.CAMPAIGN_CANCELED, campaign_canceled_listener);
+  
+    } else {
+      // toast.warning("Contract not initialized for removal of listeners.");
+      console.warn("Contract not initialized. Cannot add event listeners.");
+    }
+  };
+  
+  const remove_event_listener =  () => {
+    if (contract) {
+      contract.off(EVENTS.CAMPAIGN_CREATED, campaign_create_listener);
+      contract.off(EVENTS.DONATION_RECEIVED, donation_received_listener);
+      contract.off(EVENTS.CAMPAIGN_AMOUNT_UPDATED, campaign_amount_updated_listener);
+      contract.off(EVENTS.FUNDS_WITHDRAWN, funds_withdrawn_listener);
+      contract.off(EVENTS.CAMPAIGN_CANCELED, campaign_canceled_listener);
+  
+    } else {
+      // toast.warning("Contract not initialized for additon of listeners.");
+      console.warn("Contract not initialized. Cannot remove event listeners.");
+    }
+  };
+  
   return (
     <StateContext.Provider
       value={{ 
@@ -284,7 +368,9 @@ const requestAccount = async () => {
         setAccount,
         getPaymentDetailsUser,
         withdraw,
-        cancel
+        cancel,
+        add_event_listener,
+        remove_event_listener
       }}
     >
       {children}

@@ -15,7 +15,7 @@ const Payment = () => {
   
   const fetchPayments = async () => {
     setIsLoading(true);
-    const data = await getPaymentDetailsUser(account);
+    const data = await getPaymentDetailsUser();
     setPayments(data);
     setIsLoading(false);
   }

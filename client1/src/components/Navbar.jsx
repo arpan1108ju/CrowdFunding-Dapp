@@ -19,7 +19,6 @@ const Navbar = () => {
     if (searchFieldValue.trim() !== '') {
         console.log('At navbar : ',searchFieldValue);
         navigate(`/search/${searchFieldValue}`, { state: { query: searchFieldValue } });
-        navigate(`/campaign-details/${campaign?.title}`, { state: JSON.stringify(campaign) })
       }
   }
   const handleKeyPress = (event) => {

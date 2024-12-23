@@ -1,9 +1,4 @@
 import React, { useState, useEffect } from "react";
-//Prasenjitgit 
-// add toastify react
-// Arpan
-import ConnectWalletButton from "./components/ConnectWalletButton";
-// import { requestAccount } from "./utils/contractServices";
 
 import { useStateContext } from "./context";
 
@@ -19,47 +14,43 @@ import Search from "./pages/Search";
 
 const App = () => {
 
-  const { account, requestAccount , initialize, setAccount } = useStateContext();
+  const { account, requestAccount , setAccount, add_event_listener,
+    remove_event_listener , contract
+   } = useStateContext();
+
+
 
   useEffect(() => {
-    initialize();
+
     const fetchCurAccount = async () => {
       const _account = await requestAccount();
       setAccount(_account);
     };
-    fetchCurAccount();
-  }, [account]);
-
-  useEffect(() => {
-
     const handleAccountChanged = (newAccounts) => {
       setAccount(newAccounts.length > 0 ? newAccounts[0] : null);
     }
+
+
+    fetchCurAccount();
+    add_event_listener();
+
+    // const f = async() => {
+    //   if(contract) console.log("listeners count:",await contract.listenerCount());
+    // }
+    // f();
+
 
     if (window.ethereum) {
       window.ethereum.on("accountsChanged", handleAccountChanged);
     }
     return () => {
       window.ethereum?.removeListener("accountsChanged", handleAccountChanged);
+      remove_event_listener();
     };
   } ,[account]);
 
   return (
       <div className="relative sm:-8 p-4 bg-[#13131a] min-h-screen flex flex-row">
-       {/*  */}
-        {/* <div className="text-green-300">
-
-          {!account ? (
-          <ConnectWalletButton setAccount={setAccount} />
-        ) : (
-          <div className="contract-interactions">
-            wallet connected
-          </div>
-        )}
-        </div> */}
-
-        {/*  */}
-
 
         <div className="sm:flex hidden mr-10 relative">
           <Sidebar />

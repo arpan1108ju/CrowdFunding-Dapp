@@ -6,6 +6,7 @@ import { useStateContext } from '../context';
 import { CountBox, CustomButton, Loader } from '../components';
 import { calculateBarPercentage, daysLeft, isEqual, timeDifference } from '../utils';
 import { thirdweb } from '../assets';
+import { toast } from 'react-toastify';
 
 const CampaignDetails = () => {
   const { state } = useLocation();
@@ -27,15 +28,24 @@ const CampaignDetails = () => {
 
   useEffect(() => {
     if(contract) fetchDonators();
+
+    // console.log('time diff = ',timeDifference(campaignState.deadline));
+    // console.log('Now      ',Date.now());
+    // console.log('Deadline ',new Date(campaignState.deadline).getTime());
+
   }, [contract, account])
 
 
   const handleDonate = async () => {
+
+    if(amount.length === 0){
+       toast.error("Amount not provided");
+       return;
+    }
+
     setIsLoading(true);
 
     await donate(campaignState.pId, amount); 
-
-    navigate('/')
     setIsLoading(false);
   }
 
@@ -44,7 +54,6 @@ const CampaignDetails = () => {
 
     await withdraw(campaignState.pId); 
 
-    navigate('/')
     setIsLoading(false);
   }
 
@@ -52,10 +61,10 @@ const CampaignDetails = () => {
     setIsLoading(true);
 
     await cancel(campaignState.pId); 
-
-    navigate('/')
     setIsLoading(false);
   }
+
+
 
   return (
     <div>
@@ -144,7 +153,7 @@ const CampaignDetails = () => {
                 title="Fund Campaign"
                 styles="w-full bg-[#8c6dfd] mb-4 "
                 handleClick={handleDonate}
-                disabled={timeDifference(campaignState.deadline) <= 0}
+                disabled={!account || timeDifference(campaignState.deadline) <= 0 || campaignState.canceled}
               />
               <CustomButton 
                 btnType="button"
