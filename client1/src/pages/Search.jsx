@@ -15,13 +15,24 @@ const Search = () => {
 
   const { contract, getCampaigns,account } = useStateContext();
 
+  // const fetchCampaigns = async () => {
+  //   setIsLoading(true);
+  //   let data = await getCampaigns();
+  //   data = data.filter((camp) => camp.title === query);
+  //   setCampaigns(data);
+  //   setIsLoading(false);
+  // }
   const fetchCampaigns = async () => {
     setIsLoading(true);
     let data = await getCampaigns();
-    data = data.filter((camp) => camp.title === query);
+  
+    // Use regex to filter campaigns based on the query
+    const regex = new RegExp(query, 'i'); // 'i' for case-insensitive search
+    data = data.filter((camp) => regex.test(camp.title));
+  
     setCampaigns(data);
     setIsLoading(false);
-  }
+  };
 
   useEffect(() => {
 
@@ -37,4 +48,5 @@ const Search = () => {
   )
 }
 
-export default Search
+export default Search;
+
