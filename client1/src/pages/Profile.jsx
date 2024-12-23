@@ -13,7 +13,7 @@ const Profile = () => {
 
   const fetchCampaigns = async () => {
     setIsLoading(true);
-    const data = await getUserCampaigns(account);
+    const data = await getUserCampaigns();
     setCampaigns(data);
     setIsLoading(false);
   }

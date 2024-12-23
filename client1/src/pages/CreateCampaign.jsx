@@ -11,7 +11,7 @@ const CreateCampaign = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [checkboxValue,setCheckboxValue] = useState(false);
-  const { createCampaign } = useStateContext();
+  const { createCampaign,account } = useStateContext();
   const [form, setForm] = useState({
     name: '',
     title: '',
@@ -134,6 +134,7 @@ const CreateCampaign = () => {
               btnType="submit"
               title="Submit new campaign"
               styles="bg-[#1dc071]"
+              disabled={!account}
             />
           </div>
       </form>

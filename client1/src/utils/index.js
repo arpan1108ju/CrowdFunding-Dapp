@@ -43,3 +43,15 @@ export const convertTimeToMs = (timeInput) => {
   } 
   return 0;
 }
+
+export const EVENTS = {
+   CAMPAIGN_CREATED : "CampaignCreated",
+   DONATION_RECEIVED : "DonationReceived",
+   CAMPAIGN_AMOUNT_UPDATED : "CampaignAmountUpdated",
+   FUNDS_WITHDRAWN : "FundsWithdrawn",
+   CAMPAIGN_CANCELED : "CampaignCanceled"
+}
+
+export const reverseSortByPId = (array) => {
+  return array.sort((a, b) => b.pId - a.pId);
+};
