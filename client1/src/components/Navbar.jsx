@@ -20,6 +20,9 @@ const Navbar = () => {
         console.log('At navbar : ',searchFieldValue);
         navigate(`/search/${searchFieldValue}`, { state: { query: searchFieldValue } });
       }
+    else{
+        navigate('/');
+    }
   }
   const handleKeyPress = (event) => {
     if (event.key === 'Enter') {

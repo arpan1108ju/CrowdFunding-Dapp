@@ -47,6 +47,7 @@ const CampaignDetails = () => {
 
     await donate(campaignState.pId, amount); 
     setIsLoading(false);
+    setAmount('');
   }
 
   const handleWithdraw = async () => {
@@ -55,6 +56,7 @@ const CampaignDetails = () => {
     await withdraw(campaignState.pId); 
 
     setIsLoading(false);
+    setAmount('');
   }
 
   const handleCancel = async () => {
@@ -62,6 +64,7 @@ const CampaignDetails = () => {
 
     await cancel(campaignState.pId); 
     setIsLoading(false);
+    setAmount('');
   }
 
 
@@ -153,21 +156,21 @@ const CampaignDetails = () => {
                 title="Fund Campaign"
                 styles="w-full bg-[#8c6dfd] mb-4 "
                 handleClick={handleDonate}
-                disabled={!account || timeDifference(campaignState.deadline) <= 0 || campaignState.canceled}
+                disabled={ isLoading || !account || timeDifference(campaignState.deadline) <= 0 || campaignState.canceled}
               />
               <CustomButton 
                 btnType="button"
                 title="Withdraw"
                 styles="w-full bg-[#fc8403] mb-4"
                 handleClick={handleWithdraw}
-                disabled={!isEqual(account,campaignState.owner) || timeDifference(campaignState.deadline) >= 0 || campaignState.withdrawn }
+                disabled={ isLoading || !isEqual(account,campaignState.owner) || timeDifference(campaignState.deadline) >= 0 || campaignState.withdrawn }
               />
               <CustomButton 
                 btnType="button"
                 title="Cancel"
                 styles="w-full bg-[#fc1803] mb-4 "
                 handleClick={handleCancel}
-                disabled={!isEqual(account,campaignState.owner) || timeDifference(campaignState.deadline) <= 0 || campaignState.canceled}
+                disabled={ isLoading || !isEqual(account,campaignState.owner) || timeDifference(campaignState.deadline) <= 0 || campaignState.canceled}
               />
             </div>
           </div>

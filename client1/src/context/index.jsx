@@ -5,7 +5,7 @@ import { ethers } from 'ethers';
 import abi from "../utils/CrowdFunding_abi.json";
 import { BrowserProvider, Contract, parseEther, formatEther } from "ethers";
 import { CROWDFUNDING_CONTRACT_ADDRESS } from "../utils/constants";
-import { convertTimeToMs, EVENTS, isEqual, reverseSortByPId } from '../utils';
+import { convertTimeToMs, EVENTS, isEqual, reverseSortByPId, reverseSortByTimestamp } from '../utils';
 import { toast } from 'react-toastify';
 
 
@@ -87,7 +87,7 @@ const requestAccount = async () => {
     } catch (error) {
       
       if (error.message?.includes('revert')) {
-        toast.error(error.message);
+        toast.error('Failed to create contract!');
         console.error('Function reverted!', error.message);  
       }
       else{
@@ -116,8 +116,8 @@ const requestAccount = async () => {
         console.error('Function reverted!', error.message);  
       }
       else{
-        // toast.error('Failed to donate!');
-        toast.error(error.message);
+        toast.error('Failed to donate!');
+        // toast.error(error.message);
         console.error("contract call failure", error);
       }
     }
@@ -132,7 +132,7 @@ const requestAccount = async () => {
       // alert("Withdrawn successful!");
     } catch (error) {
       if (error.message?.includes('revert')) {
-        toast.error(error.message);
+        toast.error('Failed to withdraw!');
         console.error('Function reverted!', error.message);  
       }
       else{
@@ -148,11 +148,12 @@ const requestAccount = async () => {
       check_for_account();
       const tx = await contract.cancelCampaign(campaignId);
       await tx.wait();
-      alert("Cancelation successful!");
+      toast.success("Cancelation successful!!");
+      return 
     } catch (error) {
       if (error.message?.includes('revert')) {
         const {reason} = await errorDecoder.decode(error); 
-        toast.error(error.message);
+        toast.error('Cancelation failed!');
         console.error('Function reverted!', reason );  
       }
       else{
@@ -186,7 +187,7 @@ const requestAccount = async () => {
       return reverseSortByPId(allCampaigns);
 
     } catch (error) {
-      toast.error(error.message);
+      toast.error("Error fetching campaigns");
       console.error("Error fetching campaigns:", error);
     }
   };
@@ -200,7 +201,7 @@ const requestAccount = async () => {
         donation: ethers.formatEther(donations[i].toString()),
       }));
     } catch (error) {
-      toast.error(error.message);
+      toast.error("Error fetching donators");
       console.error("Error fetching donators:", error);
     }
   }
@@ -237,7 +238,7 @@ const requestAccount = async () => {
       return reverseSortByPId(filteredCampaigns);
 
     } catch (error) {
-      toast.error(error.message);
+      toast.error("Error fetching campaigns");
       console.log("Error fetching campaigns:", error);
     }
   }
@@ -258,10 +259,10 @@ const requestAccount = async () => {
         };
     });    
 
-    return reverseSortByPId(allPaymentDetails);
+    return reverseSortByTimestamp(allPaymentDetails);
 
     } catch (error) {
-      toast.error(error.message);
+      toast.error("Error fetching paymentDetails");
       console.log("Error fetching paymentDetails:", error);
     }
   }
@@ -272,7 +273,7 @@ const requestAccount = async () => {
       const new_account = await requestAccount();
       setAccount(new_account);
     } catch (error) {
-      toast.error(error.message);
+      toast.error("Failed to connect wallet");
       console.error("Failed to connect wallet:", error);
     }
   }
@@ -281,7 +282,7 @@ const requestAccount = async () => {
     try {
       setAccount(null);
     } catch (error) {
-      toast.error(error.message);
+      toast.error("Failed to disconnect wallet");
       console.error("Failed to disconnect wallet:", error);
     }
   }

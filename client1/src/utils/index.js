@@ -55,3 +55,9 @@ export const EVENTS = {
 export const reverseSortByPId = (array) => {
   return array.sort((a, b) => b.pId - a.pId);
 };
+
+export const reverseSortByTimestamp = (array) => {
+  return array.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+};
+
+

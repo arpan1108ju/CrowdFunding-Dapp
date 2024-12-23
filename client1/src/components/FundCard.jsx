@@ -11,7 +11,7 @@ const FundCard = ({ owner, title, description, target, deadline, amountCollected
       <img src={image} alt="fund" className="w-full h-[158px] object-cover rounded-[15px]"/>
 
       <div className="flex flex-col p-4">
-        <div className="flex flex-row items-center mb-[18px]">
+        <div className="flex flex-row justify-between mb-[18px]">
           <img src={tagType} alt="tag" className="w-[17px] h-[17px] object-contain"/>
           <p className="ml-[12px] mt-[2px] font-epilogue font-medium text-[12px] text-[#808191]">Education</p>
         </div>

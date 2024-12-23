@@ -37,7 +37,7 @@ const Search = () => {
   useEffect(() => {
 
     if(contract) fetchCampaigns();
-  }, [account, contract]);
+  }, [account, contract,state]);
 
   return (
     <DisplayCampaigns 
