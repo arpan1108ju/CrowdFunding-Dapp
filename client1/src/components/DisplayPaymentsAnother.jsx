@@ -92,7 +92,7 @@ const DisplayPaymentsAnother = ({ title, isLoading, payments }) => {
                 index,
               ) => {
                 const classes = "p-4 border-b border-blue-gray-50";
- 
+                const apply = isDonation ? 'bg-green-400' : 'bg-red-400';
                 return (
                   <tr key={timestamp}>
                     <td className={classes}>
@@ -123,9 +123,18 @@ const DisplayPaymentsAnother = ({ title, isLoading, payments }) => {
                     </td>
                     <td className={classes}>
                       <div className="w-max">
-                        <div class="rounded-md bg-green-400 text-gray-100 py-0.5 px-2.5 border border-transparent text-sm font-bold transition-all shadow-sm">
-                        {isDonation ? 'Donation' : 'Withdrawal'} 
-                        </div> 
+
+                        {isDonation ? 
+                         <div className="rounded-md bg-green-500 text-gray-100 py-0.5 px-2.5 border border-transparent text-sm font-bold transition-all shadow-sm">
+                            Donation
+                          </div>
+                          :
+                         <div className="rounded-md bg-red-500 text-gray-100 py-0.5 px-2.5 border border-transparent text-sm font-bold transition-all shadow-sm">
+                          Withdrawal
+                          </div>
+                         }
+
+              
                       </div>
                     </td>
                   </tr>
