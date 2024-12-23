@@ -6,13 +6,15 @@ import { useStateContext } from '../context';
 import { money } from '../assets';
 import { CustomButton, FormField, Loader } from '../components';
 import { checkIfImage } from '../utils';
+import { toast } from 'react-toastify';
 
 const CreateCampaign = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [checkboxValue,setCheckboxValue] = useState(false);
   const { createCampaign,account } = useStateContext();
-  const [form, setForm] = useState({
+  
+  const initialData = {
     name: '',
     title: '',
     description: '',
@@ -20,7 +22,10 @@ const CreateCampaign = () => {
     deadline: (new Date()).toLocaleDateString('en-CA'),
     image: '',
     time : '00:00:00.000'
-  });
+  };
+
+
+  const [form, setForm] = useState(initialData);
 
   const handleFormFieldChange = (fieldName, e) => {
     setForm({ ...form, [fieldName]: e.target.value })
@@ -29,17 +34,27 @@ const CreateCampaign = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if(isLoading) return;
+    setIsLoading(true);
+
     checkIfImage(form.image, async (exists) => {
-      if(exists) {
-        setIsLoading(true)
-        console.log('creating start...')
-        await createCampaign({ ...form, target: ethers.parseUnits(form.target, 18)})
-        console.log('creating end..')
-        setIsLoading(false);
-        navigate('/');
+      if (exists) {
+        try {
+          console.log("creating start...");
+          await createCampaign({ ...form, target: ethers.parseUnits(form.target, 18) });
+          console.log("creating end...");
+          
+        } catch (error) {
+          console.error("Error creating campaign:", error);
+          toast.error("Failed to create campaign. Please try again.");
+        } finally {
+          setIsLoading(false); // Reset loading state
+          setForm(initialData);
+        }
       } else {
-        alert('Provide valid image URL')
-        setForm({ ...form, image: '' });
+        toast.error("Provide a valid image URL");
+        setForm({ ...form, image: "" });
+        setIsLoading(false);
       }
     })
   }
@@ -134,7 +149,7 @@ const CreateCampaign = () => {
               btnType="submit"
               title="Submit new campaign"
               styles="bg-[#1dc071]"
-              disabled={!account}
+              disabled={isLoading || !account}
             />
           </div>
       </form>
