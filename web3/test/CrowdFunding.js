@@ -24,6 +24,7 @@ describe("CrowdFunding Contract", function () {
       owner.address,
       "Build a School",
       "A campaign to build a school.",
+      "Education",
       target,
       deadline,
       "https://example.com/image.jpg"
@@ -46,6 +47,7 @@ describe("CrowdFunding Contract", function () {
         owner.address,
         "Invalid Campaign",
         "Past deadline.",
+        "Invalid",
         target,
         pastDeadline,
         "https://example.com/image.jpg"
@@ -63,6 +65,7 @@ describe("CrowdFunding Contract", function () {
       owner.address,
       "Valid Campaign",
       "A test campaign.",
+      "Test",
       target,
       deadline,
       "https://example.com/image.jpg"
@@ -83,6 +86,7 @@ describe("CrowdFunding Contract", function () {
       owner.address,
       "Valid Campaign",
       "A test campaign.",
+      "Test",
       target,
       deadline,
       "https://example.com/image.jpg"
@@ -103,6 +107,7 @@ describe("CrowdFunding Contract", function () {
       owner.address,
       "Support Coding Education",
       "A campaign to fund coding workshops.",
+      "Workshops",
       target,
       deadline,
       "https://example.com/image.jpg"
@@ -126,6 +131,7 @@ describe("CrowdFunding Contract", function () {
       owner.address,
       "Zero Donation Test",
       "A campaign for testing zero donations.",
+      "Test",
       target,
       deadline,
       "https://example.com/image.jpg"
@@ -145,6 +151,7 @@ describe("CrowdFunding Contract", function () {
       owner.address,
       "Overfund Test",
       "A campaign for testing overfunding.",
+      "Test",
       target,
       deadline,
       "https://example.com/image.jpg"
@@ -165,6 +172,7 @@ describe("CrowdFunding Contract", function () {
       owner.address,
       "Donator Test",
       "A campaign for testing donators.",
+      "Test",
       target,
       deadline,
       "https://example.com/image.jpg"
@@ -185,6 +193,36 @@ describe("CrowdFunding Contract", function () {
     ]);
   });
 
+  it("should return the correct campaign details by ID", async function () {
+    const now = Math.floor(Date.now() / 1000);
+    const deadline = now + 3600; // 1 hour from now
+    const target = ethers.parseEther("5"); // 5 ETH target
+  
+    // Create a new campaign
+    await crowdFunding.createCampaign(
+      owner.address,
+      "Test Campaign",
+      "A detailed description for testing getCampaignById.",
+      "Education",
+      target,
+      deadline,
+      "https://example.com/image.jpg"
+    );
+  
+    // Fetch the campaign details by ID (ID = 0 for the first campaign)
+    const campaign = await crowdFunding.getCampaignById(0);
+  
+    // Validate the returned campaign details
+    expect(campaign.owner).to.equal(owner.address);
+    expect(campaign.title).to.equal("Test Campaign");
+    expect(campaign.description).to.equal("A detailed description for testing getCampaignById.");
+    expect(campaign.target.toString()).to.equal(target.toString());
+    expect(campaign.deadline).to.equal(deadline);
+    expect(campaign.image).to.equal("https://example.com/image.jpg");
+    expect(campaign.amountCollected.toString()).to.equal("0");
+  });
+  
+
   it("should return all campaigns", async function () {
     const now = Math.floor(Date.now() / 1000);
     const deadline1 = now + 3600;
@@ -197,6 +235,7 @@ describe("CrowdFunding Contract", function () {
       owner.address,
       "Campaign 1",
       "Description for campaign 1.",
+      "Image 1",
       target1,
       deadline1,
       "https://example.com/image1.jpg"
@@ -206,6 +245,7 @@ describe("CrowdFunding Contract", function () {
       owner.address,
       "Campaign 2",
       "Description for campaign 2.",
+      "Image 2",
       target2,
       deadline2,
       "https://example.com/image2.jpg"
@@ -228,6 +268,7 @@ it("should record donation payment details correctly", async function () {
     owner.address,
     "Support Education",
     "A campaign for education support.",
+    "Image",
     target,
     deadline,
     "https://example.com/image.jpg"
@@ -243,7 +284,7 @@ it("should record donation payment details correctly", async function () {
   expect(payments.length).to.equal(1);
   expect(payments[0].campaignId).to.equal(0);
   expect(payments[0].amount.toString()).to.equal(donationAmount.toString());
-  expect(payments[0].isDonation).to.equal(true);
+  expect(payments[0].paymentType).to.equal("donation");
 });
 
 
@@ -257,6 +298,7 @@ it("should fail to withdraw if already withdrawn", async function () {
     owner.address,
     "Duplicate Withdraw Test",
     "A campaign for duplicate withdrawal testing.",
+    "Image",
     target,
     deadline,
     "https://example.com/image.jpg"
@@ -296,6 +338,7 @@ it("should allow the owner to withdraw funds and record withdrawal details", asy
     owner.address,
     "Withdrawal Test",
     "A campaign for withdrawal testing.",
+    "Image",
     target,
     deadline,
     "https://example.com/image.jpg"
@@ -321,7 +364,7 @@ it("should allow the owner to withdraw funds and record withdrawal details", asy
   expect(payments.length).to.equal(1);
   expect(payments[0].campaignId).to.equal(0);
   expect(payments[0].amount.toString()).to.equal(donationAmount.toString());
-  expect(payments[0].isDonation).to.equal(false);
+  expect(payments[0].paymentType).to.equal("withdrawal");
 });
 
 
@@ -329,13 +372,15 @@ it("should allow the owner to withdraw funds and record withdrawal details", asy
 it("should allow the owner to cancel the campaign and refund all donators", async function () {
   const block = await ethers.provider.getBlock("latest");
   const now = Math.floor(block.timestamp);
-  const deadline = now + 3600;
+  const deadline = now + 3600; // 1 hour from now
   const target = ethers.parseEther("5");
 
+  // Create a campaign
   await crowdFunding.createCampaign(
     owner.address,
     "Cancel Test",
     "A campaign to test cancellation.",
+    "Image",
     target,
     deadline,
     "https://example.com/image.jpg"
@@ -344,28 +389,47 @@ it("should allow the owner to cancel the campaign and refund all donators", asyn
   const donationAmount1 = ethers.parseEther("1");
   const donationAmount2 = ethers.parseEther("2");
 
+  // Addr1 and Addr2 donate to the campaign
   await crowdFunding.connect(addr1).donateToCampaign(0, { value: donationAmount1 });
   await crowdFunding.connect(addr2).donateToCampaign(0, { value: donationAmount2 });
+
+  // Capture the balances of the donators before cancellation
+  const addr1BalanceBefore = await ethers.provider.getBalance(addr1.address);
+  const addr2BalanceBefore = await ethers.provider.getBalance(addr2.address);
 
   // Cancel the campaign
   const tx = await crowdFunding.connect(owner).cancelCampaign(0);
   const receipt = await tx.wait();
 
   // Expect event
-  expect(receipt.logs[0].fragment.name).to.equal("CampaignCanceled");
+  expect(receipt.logs[0].fragment.name).to.equal("DonationRefunded");
+  expect(receipt.logs[1].fragment.name).to.equal("DonationRefunded");
+  expect(receipt.logs[2].fragment.name).to.equal("CampaignCanceled");
 
   // Check that the campaign is canceled
   const campaign = await crowdFunding.campaigns(0);
   expect(campaign.canceled).to.equal(true);
 
-  // Check if the funds have been refunded
+  // Ensure both donators were refunded
   const addr1BalanceAfter = await ethers.provider.getBalance(addr1.address);
   const addr2BalanceAfter = await ethers.provider.getBalance(addr2.address);
 
-  // Ensure both donators were refunded
-  expect(addr1BalanceAfter).to.be.gt(donationAmount1); // Use Chai's BigNumber support
-  expect(addr2BalanceAfter).to.be.gt(donationAmount2);
+  expect(addr1BalanceAfter - addr1BalanceBefore).to.equal(donationAmount1);
+  expect(addr2BalanceAfter - addr2BalanceBefore).to.equal(donationAmount2);
+
+  // Verify the refund details in `userPayments` for addr1 and addr2
+  const addr1Payments = await crowdFunding.paymentDetails(addr1.address);
+  const addr2Payments = await crowdFunding.paymentDetails(addr2.address);
+
+  expect(addr1Payments.length).to.equal(2);
+  expect(addr1Payments[1].paymentType).to.equal("refund");
+  expect(addr1Payments[1].amount).to.equal(donationAmount1);
+
+  expect(addr2Payments.length).to.equal(2);
+  expect(addr2Payments[1].paymentType).to.equal("refund");
+  expect(addr2Payments[1].amount).to.equal(donationAmount2);
 });
+
 
 it("should fail to cancel a non-existent campaign", async function () {
   await expect(crowdFunding.connect(owner).cancelCampaign(99)).to.be.revertedWith("Invalid id");
@@ -381,6 +445,7 @@ it("should fail to cancel a campaign after the deadline", async function () {
     owner.address,
     "Expired Campaign",
     "A campaign that will expire before cancellation.",
+    "Image",
     target,
     deadline,
     "https://example.com/image.jpg"
@@ -433,6 +498,7 @@ it("should fail to cancel a campaign if already canceled", async function () {
     owner.address,
     "Already Canceled Campaign",
     "A campaign that is already canceled.",
+    "Cancel test",
     target,
     deadline,
     "https://example.com/image.jpg"
@@ -455,6 +521,7 @@ it("should fail to cancel a campaign by a non-owner", async function () {
     owner.address,
     "Non-Owner Cancel",
     "A campaign that should not be canceled by non-owners.",
+    "Cancel test",
     target,
     deadline,
     "https://example.com/image.jpg"

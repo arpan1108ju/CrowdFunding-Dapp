@@ -6,6 +6,7 @@ contract CrowdFunding {
         address owner;
         string title;
         string description;
+        string campaignType;
         uint256 target;
         uint256 deadline;
         uint256 amountCollected;
@@ -20,7 +21,7 @@ contract CrowdFunding {
         uint256 campaignId;
         uint256 amount;
         uint256 timestamp;
-        bool isDonation; // true if donation, false if withdrawal
+        string paymentType;
     }
 
     mapping(uint256 => Campaign) public campaigns; // id to campaign
@@ -40,23 +41,27 @@ contract CrowdFunding {
 
     event DonationReceived(
         uint256 indexed campaignId,
+        address indexed owner,
         address indexed donator,
         uint256 amount
     );
 
     event CampaignAmountUpdated(
         uint256 indexed campaignId,
+        address indexed owner,
         uint256 amountCollected
     );
 
-    event FundsWithdrawn(uint256 indexed campaignId, uint256 amount);
-    event CampaignCanceled(uint256 indexed campaignId);
+    event FundsWithdrawn(uint256 indexed campaignId,address indexed owner, uint256 amount);
+    event CampaignCanceled(uint256 indexed campaignId,address indexed owner);
+    event DonationRefunded(uint256 indexed campaignId,address indexed _donator);
 
     // Function to create a campaign
     function createCampaign(
         address _owner,
         string memory _title,
         string memory _description,
+        string memory _campaignType,
         uint256 _target,
         uint256 _deadline,
         string memory _image
@@ -69,6 +74,7 @@ contract CrowdFunding {
         campaign.owner = _owner;
         campaign.title = _title;
         campaign.description = _description;
+        campaign.campaignType = _campaignType;
         campaign.target = _target;
         campaign.deadline = _deadline;
         campaign.amountCollected = 0;
@@ -112,11 +118,11 @@ contract CrowdFunding {
             campaignId: _id,
             amount: amount,
             timestamp: block.timestamp,
-            isDonation: true
+            paymentType : "donation"
         }));
 
-        emit DonationReceived(_id, msg.sender, amount);
-        emit CampaignAmountUpdated(_id, campaign.amountCollected);
+        emit DonationReceived(_id,campaign.owner, msg.sender, amount);
+        emit CampaignAmountUpdated(_id,campaign.owner, campaign.amountCollected);
     }
 
     // Function to withdraw funds (only by owner and after deadline)
@@ -141,10 +147,10 @@ contract CrowdFunding {
             campaignId: _id,
             amount: amount,
             timestamp: block.timestamp,
-            isDonation: false
+            paymentType : "withdrawal"
         }));
 
-        emit FundsWithdrawn(_id, amount);
+        emit FundsWithdrawn(_id,campaign.owner, amount);
     }
 
     // Function to get all payment details of a user
@@ -178,6 +184,11 @@ contract CrowdFunding {
         return allCampaigns;
     }
 
+     function getCampaignById(uint256 _id) public view returns (Campaign memory) {
+        require(_id < numberOfCampaigns, "Invalid id");
+        return campaigns[_id];
+    }
+
     function cancelCampaign(uint256 _id) public {
         Campaign storage campaign = campaigns[_id];
 
@@ -197,11 +208,20 @@ contract CrowdFunding {
 
             (bool refunded, ) = payable(donator).call{value: donationAmount}("");
             require(refunded, "Refund failed for one of the donators");
+            userPayments[donator].push(PaymentDetail({
+            campaignId: _id,
+            amount: donationAmount,
+            timestamp: block.timestamp,
+            paymentType : "refund"
+            }));
+
+            emit DonationRefunded(_id,donator);
+
         }
 
         campaign.canceled = true;
 
-        emit CampaignCanceled(_id);
+        emit CampaignCanceled(_id,campaign.owner);
     }
 
 

@@ -4,14 +4,15 @@ import { ethers } from 'ethers';
 
 import { useStateContext } from '../context';
 import { CountBox, CustomButton, Loader } from '../components';
-import { calculateBarPercentage, daysLeft, isEqual, timeDifference } from '../utils';
+import { calculateBarPercentage, daysLeft, isAmountEqual, isEqual, timeDifference } from '../utils';
 import { thirdweb } from '../assets';
 import { toast } from 'react-toastify';
+import CustomTooltip from '../components/CustomTooltip';
 
 const CampaignDetails = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { donate, getDonations, contract, account,withdraw,cancel } = useStateContext();
+  const { donate, getDonations, contract, account,balance,withdraw,cancel } = useStateContext();
 
   const campaignState = JSON.parse(state);
 
@@ -45,28 +46,78 @@ const CampaignDetails = () => {
 
     setIsLoading(true);
 
-    await donate(campaignState.pId, amount); 
+    const success = await donate(campaignState.pId, amount); 
     setIsLoading(false);
     setAmount('');
+    if(success) navigate('/');
   }
 
   const handleWithdraw = async () => {
     setIsLoading(true);
 
-    await withdraw(campaignState.pId); 
+    const success = await withdraw(campaignState.pId); 
 
     setIsLoading(false);
     setAmount('');
+    if(success) navigate('/');
+
   }
 
   const handleCancel = async () => {
     setIsLoading(true);
 
-    await cancel(campaignState.pId); 
+    const success = await cancel(campaignState.pId); 
     setIsLoading(false);
     setAmount('');
+    if(success) navigate('/');
+
   }
 
+  const isSufficient = (_balance,_amount) => {
+      return Number(_balance) >= Number(_amount);
+  }
+
+  const deadline_reached = () => {
+     return timeDifference(campaignState.deadline) <= 0;
+  }
+
+  const isFundDisabled = isLoading || !account || isAmountEqual(campaignState.amountCollected,campaignState.target) || !isSufficient(balance,amount) || deadline_reached() || campaignState.canceled;
+  const isWithdrawDisabled = isLoading || !account || !isEqual(account,campaignState.owner) || !deadline_reached() || campaignState.withdrawn;
+  const isCancelDisabled = isLoading || !account || !isEqual(account,campaignState.owner) || deadline_reached() || campaignState.canceled;
+
+  const getFundButtonTooltip = () => {
+    if (isLoading) return "Loading... Please wait.";
+    if (!account) return "Connect your wallet to fund the campaign.";
+    if (isAmountEqual(campaignState.amountCollected,campaignState.target)) return "Goal already reached.";
+    if (!isSufficient(balance,amount)) return "Balance insufficient";
+    if (deadline_reached()) return "Campaign deadline has passed.";
+    if (campaignState.canceled) return "This campaign has been canceled.";
+    return ""; // No tooltip if the button is enabled
+  };
+
+  const getWithdrawButtonTooltip = () => {
+    if (isLoading) return "Loading... Please wait.";
+    if (!account) return "Connect your wallet to fund the campaign.";
+    if (!isEqual(account, campaignState.owner)) return "Only the campaign owner can withdraw funds.";
+    if (!deadline_reached()) return "Funds can only be withdrawn after the campaign ends.";
+    if (campaignState.withdrawn) return "Funds have already been withdrawn.";
+    return ""; // No tooltip if the button is enabled
+  };
+  
+  const getCancelButtonTooltip = () => {
+    if (isLoading) return "Loading... Please wait.";
+    if (!account) return "Connect your wallet to fund the campaign.";
+    if (!isEqual(account, campaignState.owner)) return "Only the campaign owner can cancel the campaign.";
+    if (deadline_reached()) return "Cannot cancel a campaign after the deadline.";
+    if (campaignState.canceled) return "This campaign has already been canceled.";
+    return ""; // No tooltip if the button is enabled
+  };
+  
+  // Assign tooltip values
+  const fundButtonTooltip = getFundButtonTooltip();
+  const withdrawButtonTooltip = getWithdrawButtonTooltip();
+  const cancelButtonTooltip = getCancelButtonTooltip();
+  
 
 
   return (
@@ -76,8 +127,8 @@ const CampaignDetails = () => {
       <div className="w-full flex md:flex-row flex-col mt-10 gap-[30px]">
         <div className="flex-1 flex-col">
           <img src={campaignState.image} alt="campaign" className="w-full h-[410px] object-cover rounded-xl"/>
-          <div className="relative w-full h-[5px] bg-[#3a3a43] mt-2">
-            <div className="absolute h-full bg-[#4acd8d]" style={{ width: `${calculateBarPercentage(campaignState.target, campaignState.amountCollected)}%`, maxWidth: '100%'}}>
+          <div className="w-full h-[5px] bg-[#3a3a43] mt-2">
+            <div className="h-full bg-[#4acd8d]" style={{ width: `${calculateBarPercentage(campaignState.target, campaignState.amountCollected)}%`, maxWidth: '100%'}}>
             </div>
           </div>
         </div>
@@ -150,28 +201,36 @@ const CampaignDetails = () => {
                 <h4 className="font-epilogue font-semibold text-[14px] leading-[22px] text-white">Back it because you believe in it.</h4>
                 <p className="mt-[20px] font-epilogue font-normal leading-[22px] text-[#808191]">Support the project for no reward, just because it speaks to you.</p>
               </div>
+              
+                <CustomTooltip hidden={!isFundDisabled} name={isFundDisabled ? fundButtonTooltip : ""} >
+                  <CustomButton 
+                    btnType="button"
+                    title="Fund Campaign"
+                    styles="w-full bg-[#8c6dfd] mb-4 "
+                    handleClick={handleDonate}
+                    disabled={isFundDisabled}
+                  />
+                </CustomTooltip>
 
-              <CustomButton 
-                btnType="button"
-                title="Fund Campaign"
-                styles="w-full bg-[#8c6dfd] mb-4 "
-                handleClick={handleDonate}
-                disabled={ isLoading || !account || timeDifference(campaignState.deadline) <= 0 || campaignState.canceled}
-              />
-              <CustomButton 
-                btnType="button"
-                title="Withdraw"
-                styles="w-full bg-[#fc8403] mb-4"
-                handleClick={handleWithdraw}
-                disabled={ isLoading || !isEqual(account,campaignState.owner) || timeDifference(campaignState.deadline) >= 0 || campaignState.withdrawn }
-              />
-              <CustomButton 
-                btnType="button"
-                title="Cancel"
-                styles="w-full bg-[#fc1803] mb-4 "
-                handleClick={handleCancel}
-                disabled={ isLoading || !isEqual(account,campaignState.owner) || timeDifference(campaignState.deadline) <= 0 || campaignState.canceled}
-              />
+                <CustomTooltip hidden={!isWithdrawDisabled} name={isWithdrawDisabled ? withdrawButtonTooltip : ""} >
+                  <CustomButton 
+                    btnType="button"
+                    title="Withdraw"
+                    styles="w-full bg-[#fc8403] mb-4"
+                    handleClick={handleWithdraw}
+                    disabled={isWithdrawDisabled}
+                  />
+                </CustomTooltip>
+
+                <CustomTooltip hidden={!isCancelDisabled} name={isCancelDisabled ? cancelButtonTooltip : ""} >
+                  <CustomButton 
+                    btnType="button"
+                    title="Cancel"
+                    styles="w-full bg-[#fc1803] mb-4 "
+                    handleClick={handleCancel}
+                    disabled={isCancelDisabled}
+                  />
+                </CustomTooltip>
             </div>
           </div>
         </div>

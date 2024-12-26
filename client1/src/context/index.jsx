@@ -22,7 +22,7 @@ const [provider, setProvider] = useState(null);
 const [signer, setSigner] = useState(null);
 const [contract, setContract] = useState(null);
 const [account, setAccount] = useState(null);
-
+const [balance,setBalance] = useState(null);
 
 
 // Function to initialize the provider, signer, and contract
@@ -49,15 +49,19 @@ const requestAccount = async () => {
   await initialize();
   try {
     const accounts = await provider.send("eth_requestAccounts", []);
-    setAccount(accounts[0]);
+    const curr_account = accounts[0];
+    const balanceEther = ethers.formatEther( await provider.getBalance(curr_account));
+    setAccount(curr_account);
+    setBalance(balanceEther);
     console.log('Got address',accounts[0]);
     return accounts[0]; 
   } catch (error) {
     // toast.error(error.message);
-    console.error("Error requesting account:", error.message);
+    console.error("Error requesting account or balance:", error.message);
     return null;
   }
 };
+
     
   const check_for_account = () => {
      if(!account) throw new Error("Not logged in.");
@@ -69,6 +73,7 @@ const requestAccount = async () => {
     
     let deadline_to_send = new Date(form.deadline).getTime() + convertTimeToMs(form.time);
     deadline_to_send = Math.round(deadline_to_send / 1000);
+
     
     try {
       
@@ -77,6 +82,7 @@ const requestAccount = async () => {
 					account, 
 					form.title, 
 					form.description, 
+          form.campaignType,
 					form.target,
 					deadline_to_send, 
 					form.image);
@@ -94,8 +100,10 @@ const requestAccount = async () => {
         toast.error('Failed to create contract!');
         console.error("contract call failure", error);
       }
-      
+      return false;
     }
+    toast.success("Campaign created successfully");
+    return true;
   }
 
 
@@ -109,6 +117,7 @@ const requestAccount = async () => {
       });
   
       await tx.wait();
+     
       // alert("Donation successful!");
     } catch (error) {
       if (error.message?.includes('revert')) {
@@ -120,7 +129,10 @@ const requestAccount = async () => {
         // toast.error(error.message);
         console.error("contract call failure", error);
       }
+      return false;
     }
+    toast.success("Donation successful");
+    return true;
   };
 
   const withdraw = async (campaignId) => {
@@ -130,6 +142,7 @@ const requestAccount = async () => {
       const tx = await contract.withdraw(campaignId, {gasLimit: 500000});
       await tx.wait();
       // alert("Withdrawn successful!");
+
     } catch (error) {
       if (error.message?.includes('revert')) {
         toast.error('Failed to withdraw!');
@@ -139,7 +152,13 @@ const requestAccount = async () => {
         toast.error('Failed to withdraw!');
         console.error("contract call failure", error);
       }
+      return false;
     };
+
+    toast.success("Withdrawan successful");
+
+    return true;
+
   }
 
   const cancel = async (campaignId) => {
@@ -148,19 +167,20 @@ const requestAccount = async () => {
       check_for_account();
       const tx = await contract.cancelCampaign(campaignId);
       await tx.wait();
-      toast.success("Cancelation successful!!");
-      return 
+      toast.success("Cancelation successful!!"); 
     } catch (error) {
       if (error.message?.includes('revert')) {
-        const {reason} = await errorDecoder.decode(error); 
         toast.error('Cancelation failed!');
-        console.error('Function reverted!', reason );  
+        console.error('Function reverted!', error.message );  
       }
       else{
         toast.error('Failed to cancel contract!');
         console.error("contract call failure", error);
       }
+      return false;
     }
+    toast.success("Cancelation successful");
+    return true;
   };
   
   // Fetch All Campaigns
@@ -173,6 +193,7 @@ const requestAccount = async () => {
             owner: campaign.owner,
             title: campaign.title,
             description: campaign.description,
+            campaignType : campaign.campaignType,
             target: ethers.formatEther(campaign.target.toString()), // Ensure BigInt is converted to string first
             deadline: new Date(Number(campaign.deadline) * 1000).toLocaleString(),
             amountCollected: ethers.formatEther(campaign.amountCollected.toString()), // Convert BigInt to string
@@ -206,6 +227,31 @@ const requestAccount = async () => {
     }
   }
 
+  const getCampaignById = async (campaignId) => {
+    
+    try {
+      const campaign = await contract.getCampaignById(campaignId);
+      return {
+        owner: campaign.owner,
+        title: campaign.title,
+        description: campaign.description,
+        campaignType : campaign.campaignType,
+        target: ethers.formatEther(campaign.target.toString()), // Ensure BigInt is converted to string first
+        deadline: new Date(Number(campaign.deadline) * 1000).toLocaleString(),
+        amountCollected: ethers.formatEther(campaign.amountCollected.toString()), // Convert BigInt to string
+        image: campaign.image,
+        donators: campaign.donators,
+        donations: campaign.donations.map((donation) => ethers.formatEther(donation.toString())), // Convert BigInt to string for each donation
+        pId: campaignId,
+        canceled : campaign.canceled,
+        withdrawn : campaign.withdrawn
+    };
+    } catch (error) {
+      toast.error("Error fetching campaign");
+      console.error("Error fetching campaign:", error);
+    }
+  }
+
 
   const getUserCampaigns = async () => {
     
@@ -222,6 +268,7 @@ const requestAccount = async () => {
             owner: campaign.owner,
             title: campaign.title,
             description: campaign.description,
+            campaignType : campaign.campaignType,
             target: ethers.formatEther(campaign.target.toString()), // Ensure BigInt is converted to string first
             deadline: new Date(Number(campaign.deadline) * 1000).toLocaleString(),
             amountCollected: ethers.formatEther(campaign.amountCollected.toString()), // Convert BigInt to string
@@ -255,7 +302,7 @@ const requestAccount = async () => {
             pId : Number(paymentDetail.campaignId).toString(),
             amount: ethers.formatEther(paymentDetail.amount.toString()), // Convert BigInt to string
             timestamp: new Date(Number(paymentDetail.timestamp) * 1000).toLocaleString(),
-            isDonation: paymentDetail.isDonation
+            paymentType: paymentDetail.paymentType
         };
     });    
 
@@ -290,39 +337,73 @@ const requestAccount = async () => {
 
   //********************************** EVENT ******************************************* */
    const campaign_create_listener = async(numberOfCampaigns,_owner,_title,_target,_deadline,_image,event) => {  
-   
     if(isEqual(_owner,account)){
-      toast.success('Campaign created successfully.');
+      // toast.success('Campaign created successfully.');
+      console.log('campaign_create_listener : ', {
+         numberOfCampaigns,
+         _owner,
+         _title,
+         _target,
+         _deadline,
+         _image
+      })
     }
   }
 
-   const donation_received_listener = async(_campaignId, _donator, _amount, event) => {
-    // if(isEqual(_donator,account) || isEqual(_owner,account)){
-    //   toast.success('Donation received successfully.');
-    // }
-    if(isEqual(_donator,account)){
-      toast.success(`Donation received for id-${_campaignId} successfully.`);
+   const donation_received_listener = async(_campaignId,_owner, _donator, _amount, event) => {
+    if(isEqual(_donator,account) || isEqual(_owner,account)){
+      // toast.success(`Donation received for id-${_campaignId} successfully.`);
+      console.log('donation_received_listener : ', {
+        _campaignId,
+        _owner,
+        _donator,
+        _amount
+        })
     }
 
   };
 
-  const campaign_amount_updated_listener = async(_campaignId, _amountCollected, event) => {
-    // if(isEqual(_owner,account)){
-      toast.success(`Campaign fund for id-${_campaignId} updated successfully.`);
-    // }
+  const campaign_amount_updated_listener = async(_campaignId,_owner, _amountCollected, event) => {
+    if(isEqual(_owner,account)){
+      toast.info(`Campaign fund for id-${_campaignId} updated.`);
+      console.log('campaign_amount_updated_listener : ', {
+        _campaignId,
+        _owner,
+        _amountCollected
+        })
+    }
   };
 
-  const funds_withdrawn_listener = async(_campaignId, _amount, event) => {
-     // if(isEqual(_owner,account)){
-    toast.success(`Fund is withdrawn for id-${_campaignId} successfully.`);
-    // }
+  const funds_withdrawn_listener = async(_campaignId,_owner, _amount, event) => {
+     if(isEqual(_owner,account)){
+    // toast.success(`Fund is withdrawn for id-${_campaignId} successfully.`);
+    console.log('funds_withdrawn_listener : ', {
+      _campaignId,
+      _owner,
+      _amount
+      })
+    }
   };
 
-  const campaign_canceled_listener = async(_campaignId, event) => {
-     // if(isEqual(_owner,account)){
-    toast.success(`Campaign with id-${_campaignId} canceled successfully.`);
-    // }
+  const campaign_canceled_listener = async(_campaignId,_owner, event) => {
+     if(isEqual(_owner,account)){
+    // toast.success(`Campaign with id-${_campaignId} canceled successfully.`);
+    console.log('campaign_canceled_listener : ', {
+      _campaignId,
+      _owner
+      })
+    }
   };
+
+  const donation_refunded_listener = async(_campaignId,_donor, event) => {
+    if(isEqual(_donor,account)){
+    toast.info(`Donation refunded for Campaign with id-${_campaignId}.`);
+    console.log('donation_refunded_listener : ', {
+      _campaignId,
+      _donor
+      })
+   }
+ };
   
   const add_event_listener = () => {
     if (contract) {
@@ -331,6 +412,8 @@ const requestAccount = async () => {
       contract.on(EVENTS.CAMPAIGN_AMOUNT_UPDATED, campaign_amount_updated_listener);
       contract.on(EVENTS.FUNDS_WITHDRAWN, funds_withdrawn_listener);
       contract.on(EVENTS.CAMPAIGN_CANCELED, campaign_canceled_listener);
+      contract.on(EVENTS.DONATION_REFUNDED, donation_refunded_listener);
+
   
     } else {
       // toast.warning("Contract not initialized for removal of listeners.");
@@ -345,6 +428,7 @@ const requestAccount = async () => {
       contract.off(EVENTS.CAMPAIGN_AMOUNT_UPDATED, campaign_amount_updated_listener);
       contract.off(EVENTS.FUNDS_WITHDRAWN, funds_withdrawn_listener);
       contract.off(EVENTS.CAMPAIGN_CANCELED, campaign_canceled_listener);
+      contract.off(EVENTS.DONATION_REFUNDED, donation_refunded_listener);
   
     } else {
       // toast.warning("Contract not initialized for additon of listeners.");
@@ -358,10 +442,12 @@ const requestAccount = async () => {
         initialize,
         contract,
         account,
+        balance,
         connect,
         disconnect,
         createCampaign,
         getCampaigns,
+        getCampaignById,
         getUserCampaigns,
         donate,
         getDonations,

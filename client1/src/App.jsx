@@ -34,6 +34,8 @@ const App = () => {
     fetchCurAccount();
     add_event_listener();
 
+    console.log('here at app useEffect');
+
     // const f = async() => {
     //   if(contract) console.log("listeners count:",await contract.listenerCount());
     // }
@@ -48,6 +50,7 @@ const App = () => {
       remove_event_listener();
     };
   } ,[account]);
+
 
   return (
       <div className="relative sm:-8 p-4 bg-[#13131a] min-h-screen flex flex-row">

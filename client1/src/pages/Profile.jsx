@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react'
 
-import { DisplayCampaigns } from '../components';
+import { DisplayCampaigns,UserAccountProfile } from '../components';
 import { useStateContext } from '../context'
+
 
 const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [campaigns, setCampaigns] = useState([]);
 
-  const { address, contract, getUserCampaigns,account } = useStateContext();
+  const { address, contract, getUserCampaigns,account,balance } = useStateContext();
 
   const title = account ? "All Campaigns of User " + account : "You are not logged in. To Log in connect wallet";
 
@@ -23,11 +24,14 @@ const Profile = () => {
   }, [address, contract]);
 
   return (
-    <DisplayCampaigns 
-      title={title}
-      isLoading={isLoading}
-      campaigns={campaigns}
-    />
+    <div>
+      {account && <UserAccountProfile account={account} balance={balance} />}
+      <DisplayCampaigns 
+        title={title}
+        isLoading={isLoading}
+        campaigns={campaigns}
+      />
+    </div>
   )
 }
 

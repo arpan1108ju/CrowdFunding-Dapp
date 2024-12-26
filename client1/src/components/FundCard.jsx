@@ -1,10 +1,48 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { tagType, thirdweb } from '../assets';
-import { daysLeft } from '../utils';
+import { daysLeft, getFormattedTime, isAmountEqual, timeDifference } from '../utils';
 
-const FundCard = ({ owner, title, description, target, deadline, amountCollected, image, handleClick, canceled, withdrawn }) => {
+const FundCard = ({ owner, title, description,campaignType, target, deadline, amountCollected, image, handleClick, canceled, withdrawn }) => {
   const remainingDays = daysLeft(deadline);
+
+  const [color, setColor] = useState(null);
+  const [status,setStatus] = useState(null);
+  const [time,setTime] = useState(getFormattedTime(0));
+
+  const setCampaignStatus = () => { 
+     if(canceled) {
+      setStatus('Canceled');
+      setColor('#dc3545');
+     }
+     else if(timeDifference(deadline) < 0){
+        setStatus('Completed');
+        setColor('#28a745');
+     }
+     else if(isAmountEqual(target,amountCollected)){
+        setStatus('Goal reached');
+        setColor('#2bf3f7');
+     }
+     else{
+        setStatus('Ongoing');
+        setColor('#FFFF00');
+     }
+  }
+
+  const updateTime = () => {
+     let diff = timeDifference(deadline);
+     if(diff > 0){
+       setTime(getFormattedTime(diff));
+     }
+  }
+  
+  setInterval(updateTime,1000);
+
+  
+  useEffect(()=>{
+    setCampaignStatus();
+  })
+
 
   return (
     <div className="sm:w-[288px] w-full rounded-[15px] bg-[#1c1c24] cursor-pointer" onClick={handleClick}>
@@ -14,17 +52,9 @@ const FundCard = ({ owner, title, description, target, deadline, amountCollected
         <div className="flex flex-row justify-between mb-[18px]">
           <div className="flex flex-row items-center">
             <img src={tagType} alt="tag" className="w-[17px] h-[17px] object-contain" />
-            <p className="ml-[12px] mt-[2px] font-epilogue font-medium text-[12px] text-[#808191]">Education</p>
+            <p className="ml-[12px] mt-[2px] font-epilogue font-medium text-[12px] text-[#808191]">{campaignType}</p>
           </div>
-          {!canceled ? (
-            remainingDays > 0 ? (
-              <span className="ml-[12px] font-epilogue font-bold text-[18px] text-[#FFFF00]">Ongoing</span>
-            ) : (
-              <span className="ml-[12px] font-epilogue font-bold text-[18px] text-[#28a745]">Completed</span>
-            )
-          ) : (
-            <span className="ml-[12px] font-epilogue font-bold text-[18px] text-[#dc3545]">Canceled</span>
-          )}
+          <span className="ml-[12px] font-epilogue font-bold text-[18px]" style={{ color }}>{status}</span>
         </div>
 
         <div className="block">
@@ -32,14 +62,14 @@ const FundCard = ({ owner, title, description, target, deadline, amountCollected
           <p className="mt-[5px] font-epilogue font-normal text-[#808191] text-left leading-[18px] truncate">{description}</p>
         </div>
 
-        <div className="flex justify-between flex-wrap mt-[15px] gap-2">
+        <div className="flex justify-between flex-wrap mt-[15px] gap-2 ">
           <div className="flex flex-col">
             <h4 className="font-epilogue font-semibold text-[14px] text-[#b2b3bd] leading-[22px]">{amountCollected}</h4>
             <p className="mt-[3px] font-epilogue font-normal text-[12px] leading-[18px] text-[#808191] sm:max-w-[120px] truncate">Raised of {target}</p>
           </div>
           <div className="flex flex-col">
-            <h4 className="font-epilogue font-semibold text-[14px] text-[#b2b3bd] leading-[22px]">{remainingDays}</h4>
-            <p className="mt-[3px] font-epilogue font-normal text-[12px] leading-[18px] text-[#808191] sm:max-w-[120px] truncate">Days Left</p>
+            <h4 className="font-epilogue font-semibold text-[14px] text-[#b2b3bd] leading-[22px] text-right">{time}</h4>
+            <p className="mt-[3px] font-epilogue font-normal text-[12px] leading-[18px] text-[#808191] sm:max-w-[120px] truncate">Time Left</p>
           </div>
         </div>
 
