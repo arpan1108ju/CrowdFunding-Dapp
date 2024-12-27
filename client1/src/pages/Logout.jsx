@@ -19,7 +19,7 @@ const Logout = () => {
                   handleClick={() => {
                         if(account){
                            disconnect();
-                          
+                           navigate('/');
                         }
                         else connect();
                   }}

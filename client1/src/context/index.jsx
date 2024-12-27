@@ -43,21 +43,27 @@ const initialize = async () => {
   }
 };
 
-
+const handleBalanceChanged = async (_account) => {
+  try {
+    const balanceEther = ethers.formatEther(await provider.getBalance(_account));
+    setBalance(balanceEther);
+  } catch (error) {
+    console.error('Error in fetching balance:',error.message);
+  }
+}
 
 const requestAccount = async () => {
   await initialize();
   try {
     const accounts = await provider.send("eth_requestAccounts", []);
     const curr_account = accounts[0];
-    const balanceEther = ethers.formatEther( await provider.getBalance(curr_account));
     setAccount(curr_account);
-    setBalance(balanceEther);
+    await handleBalanceChanged(curr_account);
     console.log('Got address',accounts[0]);
     return accounts[0]; 
   } catch (error) {
     // toast.error(error.message);
-    console.error("Error requesting account or balance:", error.message);
+    console.error("Error requesting account:", error.message);
     return null;
   }
 };
@@ -453,6 +459,7 @@ const requestAccount = async () => {
         getDonations,
         requestAccount,
         setAccount,
+        handleBalanceChanged,
         getPaymentDetailsUser,
         withdraw,
         cancel,
