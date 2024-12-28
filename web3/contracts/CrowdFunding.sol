@@ -13,7 +13,7 @@ contract CrowdFunding {
         string image;
         address[] donators;
         uint256[] donations;
-        bool withdrawn; // To track if funds have been withdrawn
+        bool withdrawn;
         bool canceled;
     }
 

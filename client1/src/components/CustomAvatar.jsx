@@ -4,9 +4,8 @@ import { bottts } from '@dicebear/collection';
 
 
 const CustomAvatar = ({seed}) => {
-    if(!seed) seed = "default";
     const avatar = createAvatar(bottts, {
-        seed: seed,
+        seed: seed ? seed : "default",
         size : 96,
         backgroundColor : '#d1d4f9',
         eyes : ["robocop"],
@@ -16,8 +15,6 @@ const CustomAvatar = ({seed}) => {
         top : ["radar"]
       }).toDataUri();
 
-    const svg = avatar.toString();
-    
     return <img src={avatar} alt="avatar" />;
 }
 

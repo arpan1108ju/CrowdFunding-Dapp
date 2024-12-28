@@ -8,7 +8,7 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [campaigns, setCampaigns] = useState([]);
 
-  const { address, contract, getUserCampaigns,account,balance } = useStateContext();
+  const {contract, getUserCampaigns,account,balance } = useStateContext();
 
   const title = account ? "All Campaigns of User " + account : "You are not logged in. To Log in connect wallet";
 
@@ -21,7 +21,7 @@ const Profile = () => {
 
   useEffect(() => {
     if(contract) fetchCampaigns();
-  }, [address, contract]);
+  }, [account, contract]);
 
   return (
     <div>

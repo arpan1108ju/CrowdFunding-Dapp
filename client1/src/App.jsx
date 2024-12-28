@@ -26,7 +26,6 @@ const App = () => {
     const fetchCurAccount = async () => {
       const _account = await requestAccount();
       setAccount(_account);
-      await handleBalanceChanged(_account);
     };
     const handleAccountChanged = async (newAccounts) => {
       const new_account = newAccounts.length > 0 ? newAccounts[0] : null;

@@ -37,6 +37,8 @@ const initialize = async () => {
     setSigner(new_signer);
     setContract(new_contract);
 
+    return { provider : new_provider, signer : new_signer, contract : new_contract};
+
   } else {
     toast.error("Please install MetaMask!");
     console.error("Please install MetaMask!");
@@ -44,6 +46,7 @@ const initialize = async () => {
 };
 
 const handleBalanceChanged = async (_account) => {
+  const { provider } = await initialize();
   try {
     const balanceEther = ethers.formatEther(await provider.getBalance(_account));
     setBalance(balanceEther);
@@ -173,7 +176,6 @@ const requestAccount = async () => {
       check_for_account();
       const tx = await contract.cancelCampaign(campaignId);
       await tx.wait();
-      toast.success("Cancelation successful!!"); 
     } catch (error) {
       if (error.message?.includes('revert')) {
         toast.error('Cancelation failed!');
