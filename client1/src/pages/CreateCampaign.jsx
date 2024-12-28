@@ -46,7 +46,7 @@ const CreateCampaign = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    // e.preventDefault();
 
     if (isLoading) return;
     setIsLoading(true);

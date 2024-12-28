@@ -37,27 +37,36 @@ const initialize = async () => {
     setSigner(new_signer);
     setContract(new_contract);
 
+    return { provider : new_provider, signer : new_signer, contract : new_contract};
+
   } else {
     toast.error("Please install MetaMask!");
     console.error("Please install MetaMask!");
   }
 };
 
-
+const handleBalanceChanged = async (_account) => {
+  const { provider } = await initialize();
+  try {
+    const balanceEther = ethers.formatEther(await provider.getBalance(_account));
+    setBalance(balanceEther);
+  } catch (error) {
+    console.error('Error in fetching balance:',error.message);
+  }
+}
 
 const requestAccount = async () => {
   await initialize();
   try {
     const accounts = await provider.send("eth_requestAccounts", []);
     const curr_account = accounts[0];
-    const balanceEther = ethers.formatEther( await provider.getBalance(curr_account));
     setAccount(curr_account);
-    setBalance(balanceEther);
+    await handleBalanceChanged(curr_account);
     console.log('Got address',accounts[0]);
     return accounts[0]; 
   } catch (error) {
     // toast.error(error.message);
-    console.error("Error requesting account or balance:", error.message);
+    console.error("Error requesting account:", error.message);
     return null;
   }
 };
@@ -167,7 +176,6 @@ const requestAccount = async () => {
       check_for_account();
       const tx = await contract.cancelCampaign(campaignId);
       await tx.wait();
-      toast.success("Cancelation successful!!"); 
     } catch (error) {
       if (error.message?.includes('revert')) {
         toast.error('Cancelation failed!');
@@ -453,6 +461,7 @@ const requestAccount = async () => {
         getDonations,
         requestAccount,
         setAccount,
+        handleBalanceChanged,
         getPaymentDetailsUser,
         withdraw,
         cancel,

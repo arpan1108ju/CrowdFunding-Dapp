@@ -9,13 +9,14 @@ import { Sidebar, Navbar } from './components';
 import { CampaignDetails, CreateCampaign, Home, Profile } from './pages';
 import Payment from "./pages/Payment";
 import Search from "./pages/Search";
+import Logout from "./pages/Logout";
 
 
 
 const App = () => {
 
   const { account, requestAccount , setAccount, add_event_listener,
-    remove_event_listener , contract
+    remove_event_listener , contract , handleBalanceChanged
    } = useStateContext();
 
 
@@ -26,15 +27,17 @@ const App = () => {
       const _account = await requestAccount();
       setAccount(_account);
     };
-    const handleAccountChanged = (newAccounts) => {
-      setAccount(newAccounts.length > 0 ? newAccounts[0] : null);
+    const handleAccountChanged = async (newAccounts) => {
+      const new_account = newAccounts.length > 0 ? newAccounts[0] : null;
+      setAccount(new_account);
+      await handleBalanceChanged(new_account);
     }
 
 
     fetchCurAccount();
     add_event_listener();
 
-    console.log('here at app useEffect');
+    // console.log('here at app useEffect');
 
     // const f = async() => {
     //   if(contract) console.log("listeners count:",await contract.listenerCount());
@@ -49,7 +52,7 @@ const App = () => {
       window.ethereum?.removeListener("accountsChanged", handleAccountChanged);
       remove_event_listener();
     };
-  } ,[account]);
+  } ,[]);
 
 
   return (
@@ -69,6 +72,7 @@ const App = () => {
           <Route path="/campaign-details/:id" element={<CampaignDetails />} />
           <Route path="/search/:id" element={<Search />} />
           <Route path="/payment" element={<Payment />} />
+          <Route path="/logout" element={<Logout />} />
         </Routes>
       </div>
     </div>
@@ -76,16 +80,3 @@ const App = () => {
 }
 
 export default App;
-
-
-{/* <div className="app">
-
-      {!account ? (
-        <ConnectWalletButton setAccount={setAccount} />
-      ) : (
-        <div className="contract-interactions">
-          wallet connected
-        </div>
-      )}
-      
-    </div> */}
