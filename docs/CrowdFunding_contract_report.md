@@ -6,34 +6,34 @@
 
 The Campaign structure serves as the fundamental data model for each crowdfunding campaign:
 
-- **Ownership and Identity**
+**Ownership and Identity**
 
-  - `owner`: Address storing campaign creator's wallet address
-  - `title`: String storing campaign name
-  - `description`: String containing detailed campaign information
-  - `campaignType`: String categorizing campaign type
-  - `image`: String storing campaign image URL
+owner: Address storing campaign creator's wallet address
+title: String storing campaign name
+description: String containing detailed campaign information
+campaignType: String categorizing campaign type
+image: String storing campaign image URL
 
-- **Financial Parameters**
+**Financial Parameters**
 
-  - `target`: uint256 storing fundraising goal amount
-  - `amountCollected`: uint256 tracking total received donations
-  - `donators`: Array of addresses storing all donor wallet addresses
-  - `donations`: Array of uint256 storing corresponding donation amounts
+target: uint256 storing fundraising goal amount
+amountCollected: uint256 tracking total received donations
+donators: Array of addresses storing all donor wallet addresses
+donations: Array of uint256 storing corresponding donation amounts
 
-- **Status Tracking**
-  - `deadline`: uint256 storing campaign end timestamp
-  - `withdrawn`: Boolean indicating if funds have been withdrawn
-  - `canceled`: Boolean indicating if campaign is canceled
+**Status Tracking**
+deadline: uint256 storing campaign end timestamp
+withdrawn: Boolean indicating if funds have been withdrawn
+canceled: Boolean indicating if campaign is canceled
 
 ### 1.2 PaymentDetail Structure
 
 Tracks individual transaction records with:
 
-- `campaignId`: uint256 linking payment to specific campaign
-- `amount`: uint256 storing transaction value
-- `timestamp`: uint256 recording transaction time
-- `paymentType`: String indicating transaction type (donation/withdrawal/refund)
+campaignId: uint256 linking payment to specific campaign
+amount: uint256 storing transaction value
+timestamp: uint256 recording transaction time
+paymentType: String indicating transaction type (donation/withdrawal/refund)
 
 ## 2. State Management
 
