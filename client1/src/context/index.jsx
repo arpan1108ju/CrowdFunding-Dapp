@@ -148,7 +148,9 @@ const requestAccount = async () => {
     
     try {
       check_for_account();
-      const tx = await contract.withdraw(campaignId, {gasLimit: 500000});
+       // some time may need to provide {gasLimit : 500000} 
+      // otherwise sometime do work sometime do not
+      const tx = await contract.withdraw(campaignId, {});
       await tx.wait();
       // alert("Withdrawn successful!");
 
@@ -159,7 +161,7 @@ const requestAccount = async () => {
       }
       else{
         toast.error('Failed to withdraw!');
-        console.error("contract call failure", error);
+        console.error("contract call failure : ", error);
       }
       return false;
     };
@@ -174,7 +176,9 @@ const requestAccount = async () => {
     
     try {
       check_for_account();
-      const tx = await contract.cancelCampaign(campaignId);
+      // some time may need to provide {gasLimit : 500000} 
+      // otherwise sometime do work sometime do not
+      const tx = await contract.cancelCampaign(campaignId, {});
       await tx.wait();
     } catch (error) {
       if (error.message?.includes('revert')) {
@@ -183,7 +187,7 @@ const requestAccount = async () => {
       }
       else{
         toast.error('Failed to cancel contract!');
-        console.error("contract call failure", error);
+        console.error("contract call failure : ", error);
       }
       return false;
     }

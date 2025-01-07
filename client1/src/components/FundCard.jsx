@@ -22,11 +22,11 @@ const FundCard = ({ owner, title, description,campaignType, target, deadline, am
      }
      else if(isAmountEqual(target,amountCollected)){
         setStatus('Goal reached');
-        setColor('#2bf3f7');
+        setColor('#098eed');
      }
      else{
         setStatus('Ongoing');
-        setColor('#FFFF00');
+        setColor('#d6a40d');
      }
   }
 
@@ -59,18 +59,18 @@ const FundCard = ({ owner, title, description,campaignType, target, deadline, am
         </div>
 
         <div className="block">
-          <h3 className="font-epilogue font-semibold text-[16px] text-white text-left leading-[26px] truncate">{title}</h3>
+          <h3 className="font-epilogue font-semibold text-[16px] text-primary-foreground text-left leading-[26px] truncate">{title}</h3>
           <p className="mt-[5px] font-epilogue font-normal text-[#808191] text-left leading-[18px] truncate">{description}</p>
         </div>
 
         <div className="flex justify-between flex-wrap mt-[15px] gap-2 ">
           <div className="flex flex-col">
-            <h4 className="font-epilogue font-semibold text-[14px] text-[#b2b3bd] leading-[22px]">{amountCollected}</h4>
-            <p className="mt-[3px] font-epilogue font-normal text-[12px] leading-[18px] text-[#808191] sm:max-w-[120px] truncate">Raised of {target}</p>
+            <h4 className="font-epilogue font-semibold text-[14px] text-primary-foreground leading-[22px]">{amountCollected}</h4>
+            <p className="mt-[3px] font-epilogue font-normal text-[12px] leading-[18px] text-muted-foreground sm:max-w-[120px] truncate">Raised of {target}</p>
           </div>
           <div className="flex flex-col">
-            <h4 className="font-epilogue font-semibold text-[14px] text-[#b2b3bd] leading-[22px] text-right">{time}</h4>
-            <p className="mt-[3px] font-epilogue font-normal text-[12px] leading-[18px] text-[#808191] sm:max-w-[120px] truncate">Time Left</p>
+            <h4 className="font-epilogue font-semibold text-[14px] text-primary-foreground leading-[22px] text-right">{time}</h4>
+            <p className="mt-[3px] font-epilogue font-normal text-[12px] leading-[18px] text-muted-foreground sm:max-w-[120px] truncate">Time Left</p>
           </div>
         </div>
 
@@ -78,7 +78,7 @@ const FundCard = ({ owner, title, description,campaignType, target, deadline, am
           <div className="w-[30px] h-[30px] rounded-full flex justify-center items-center mb-2">
           <CustomAvatar seed={owner} />
           </div>
-          <p className="flex-1 font-epilogue font-normal text-[12px] text-[#808191] truncate">by <span className="text-[#b2b3bd]">{owner}</span></p>
+          <p className="flex-1 font-epilogue font-normal text-[12px] text-[#808191] truncate">by <span className="text-primary-foreground">{owner}</span></p>
         </div>
       </div>
     </div>

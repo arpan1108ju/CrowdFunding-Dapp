@@ -1,21 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
-import { logo, sun } from '../assets';
+import { logo, sun , moon } from '../assets';
 import { navlinks } from '../constants';
 import CustomTooltip from './CustomTooltip';
+import { useTheme } from '../context/ThemeContext';
 
 const Icon = ({ styles, name, imgUrl, isActive, disabled, handleClick }) => (
   <CustomTooltip position="right" name={name}>
     <div 
-      className={`relative group w-[48px] h-[48px] rounded-[10px] ${isActive && isActive === name && 'bg-[#2c2f32]'} flex justify-center items-center ${!disabled && 'cursor-pointer'} ${styles}`} 
+      className={`relative group w-[48px] h-[48px] rounded-[10px] ${
+        isActive && isActive === name && 'bg-[var(--sidebar-bg)]'
+      } flex justify-center items-center ${
+        !disabled && 'cursor-pointer'
+      } ${styles}`} 
       onClick={handleClick}
     >
-      {/* Icon */}
       {!isActive ? (
         <img src={imgUrl} alt={name} className="w-1/2 h-1/2" />
       ) : (
-        <img src={imgUrl} alt={name} className={`w-1/2 h-1/2 ${isActive !== name && 'grayscale'}`} />
+        <img 
+          src={imgUrl} 
+          alt={name} 
+          className={`w-1/2 h-1/2 ${isActive !== name && 'grayscale'}`} 
+        />
       )}
     </div>
   </CustomTooltip>
@@ -25,6 +33,7 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isActive, setIsActive] = useState('dashboard');
+  const { isDarkMode, toggleTheme } = useTheme();
 
   // Update isActive when location.pathname changes
   useEffect(() => {
@@ -57,8 +66,12 @@ const Sidebar = () => {
           ))}
         </div>
 
-        {/* Uncomment for Sun Icon */}
-        {/* <Icon styles="bg-[#1c1c24] shadow-secondary" imgUrl={sun} /> */}
+        <Icon 
+          styles="" 
+          name={isDarkMode ? "Light Mode" : "Dark Mode"} 
+          imgUrl={isDarkMode ? sun : moon} 
+          handleClick={toggleTheme}
+        />
       </div>
     </div>
   );

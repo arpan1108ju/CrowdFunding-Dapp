@@ -4,6 +4,40 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Add theme variables */
+:root {
+  --background: #ffffff;
+  --text: #1a1a1a;
+  --text-secondary: #4a5568;
+  --sidebar-bg: #f0f0f0;
+  --card-bg: #ffffff;
+}
+
+.dark {
+  --background: #13131a;
+  --text: #ffffff;
+  --text-secondary: #808191;
+  --sidebar-bg: #1c1c24;
+  --card-bg: #1c1c24;
+}
+
+/* Apply theme variables */
+body {
+  background-color: var(--background);
+  color: var(--text);
+}
+
+/* Update existing classes to use theme variables */
+.bg-\[\#13131a\] {
+  background-color: var(--background);
+}
+
+.bg-\[\#1c1c24\] {
+  background-color: var(--sidebar-bg);
+}
+
+/* Add more theme-aware classes as needed */
+
 .linear-gradient {
   background: linear-gradient(
     179.14deg,
@@ -15,4 +49,13 @@
 input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
   filter: invert(0.8);
+}
+
+/* Add this utility class */
+.theme-text {
+  @apply text-[var(--text)];
+}
+
+.theme-text-secondary {
+  @apply text-[var(--text-secondary)];
 }

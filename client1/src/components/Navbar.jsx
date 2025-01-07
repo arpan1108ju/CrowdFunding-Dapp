@@ -45,7 +45,7 @@ const Navbar = () => {
         <input
           onKeyDown={(e) => handleKeyPress(e)}
           onChange={(e) => setSearchFieldValue(e.target.value)}
-          type="text" value={searchFieldValue} placeholder="Search for campaigns" className="flex w-full font-epilogue font-normal text-[14px] placeholder:text-[#4b5264] text-white bg-transparent outline-none" />
+          type="text" value={searchFieldValue} placeholder="Search for campaigns" className="flex w-full font-epilogue font-normal text-[14px] placeholder:text-[#4b5264] theme-text bg-transparent outline-none" />
 
         <div onClick={handleSearch} className="w-[72px] h-full rounded-[20px] bg-[#4acd8d] flex justify-center items-center cursor-pointer">
           <img src={search} alt="search" className="w-[15px] h-[15px] object-contain" />
@@ -53,12 +53,12 @@ const Navbar = () => {
       </div>
 
       <div className='mt-4'>
-        <span className="font-epilogue font-semibold text-[15px] text-white text-left">
+        <span className="font-epilogue font-semibold text-[15px] theme-text text-left">
           {account ? 'User ' + account : 'No account connected.'}
         </span>
       </div>
 
-      <div className="sm:flex hidden flex-row justify-end gap-4">
+      <div className="theme-text sm:flex hidden flex-row justify-end gap-4">
         <CustomButton
           btnType="button"
           title={account ? 'Create a campaign' : 'Connect'}

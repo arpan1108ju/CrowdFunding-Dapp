@@ -6,10 +6,10 @@ import { StateContextProvider } from './context';
 import App from './App';
 import './index.css';
 
-
 import {ToastContainer} from 'react-toastify' 
 import 'react-toastify/dist/ReactToastify.css';
 import 'react-tooltip/dist/react-tooltip.css';
+import { ThemeProvider } from './context/ThemeContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
@@ -17,7 +17,9 @@ root.render(
     <Router>
       <StateContextProvider>
       <ToastContainer position='top-center' autoClose='3000' theme='colored' />
+      <ThemeProvider>
         <App />
+      </ThemeProvider>
       </StateContextProvider>
     </Router>
 )

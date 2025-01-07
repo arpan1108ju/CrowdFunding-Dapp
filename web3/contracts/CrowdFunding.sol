@@ -1,31 +1,35 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
+/**
+ * @title CrowdFunding Contract
+ * @dev A decentralized crowdfunding platform for creating campaigns, making donations, and managing funds.
+ */
 contract CrowdFunding {
     struct Campaign {
-        address owner;
-        string title;
-        string description;
-        string campaignType;
-        uint256 target;
-        uint256 deadline;
-        uint256 amountCollected;
-        string image;
-        address[] donators;
-        uint256[] donations;
-        bool withdrawn;
-        bool canceled;
+        address owner;               // Campaign creator's address
+        string title;                // Campaign title
+        string description;          // Campaign description
+        string campaignType;         // Type of campaign
+        uint256 target;              // Funding target amount
+        uint256 deadline;            // Campaign deadline (timestamp)
+        uint256 amountCollected;     // Total amount collected
+        string image;                // Image URL for the campaign
+        address[] donators;          // List of donator addresses
+        uint256[] donations;         // Corresponding donation amounts
+        bool withdrawn;              // Whether funds have been withdrawn
+        bool canceled;               // Whether the campaign is canceled
     }
 
     struct PaymentDetail {
-        uint256 campaignId;
-        uint256 amount;
-        uint256 timestamp;
-        string paymentType;
+        uint256 campaignId;          // Associated campaign ID
+        uint256 amount;              // Payment amount
+        uint256 timestamp;           // Payment timestamp
+        string paymentType;          // Payment type (e.g., "donation", "withdrawal", "refund")
     }
 
-    mapping(uint256 => Campaign) public campaigns; // id to campaign
-    mapping(address => PaymentDetail[]) public userPayments; // user address to their payment history
+    mapping(uint256 => Campaign) public campaigns; // Maps campaign ID to Campaign struct
+    mapping(address => PaymentDetail[]) public userPayments; // Maps user address to their payment history
 
     uint256 public numberOfCampaigns = 0;
 
@@ -52,11 +56,21 @@ contract CrowdFunding {
         uint256 amountCollected
     );
 
-    event FundsWithdrawn(uint256 indexed campaignId,address indexed owner, uint256 amount);
-    event CampaignCanceled(uint256 indexed campaignId,address indexed owner);
-    event DonationRefunded(uint256 indexed campaignId,address indexed _donator);
+    event FundsWithdrawn(uint256 indexed campaignId, address indexed owner, uint256 amount);
+    event CampaignCanceled(uint256 indexed campaignId, address indexed owner);
+    event DonationRefunded(uint256 indexed campaignId, address indexed donator);
 
-    // Function to create a campaign
+    /**
+     * @notice Creates a new crowdfunding campaign.
+     * @param _owner Address of the campaign creator
+     * @param _title Title of the campaign
+     * @param _description Description of the campaign
+     * @param _campaignType Type of the campaign
+     * @param _target Target amount to be raised
+     * @param _deadline Deadline for the campaign (timestamp)
+     * @param _image URL of the campaign image
+     * @return The ID of the created campaign
+     */
     function createCampaign(
         address _owner,
         string memory _title,
@@ -66,11 +80,10 @@ contract CrowdFunding {
         uint256 _deadline,
         string memory _image
     ) public returns (uint256) {
-        Campaign storage campaign = campaigns[numberOfCampaigns];
-
         require(_deadline > block.timestamp, "The deadline should be a date in the future.");
         require(_owner == msg.sender, "Only owner creates the campaign");
 
+        Campaign storage campaign = campaigns[numberOfCampaigns];
         campaign.owner = _owner;
         campaign.title = _title;
         campaign.description = _description;
@@ -82,127 +95,124 @@ contract CrowdFunding {
         campaign.withdrawn = false;
         campaign.canceled = false;
 
-        emit CampaignCreated(
-            numberOfCampaigns,
-            _owner,
-            _title,
-            _target,
-            _deadline,
-            _image
-        );
-
+        emit CampaignCreated(numberOfCampaigns, _owner, _title, _target, _deadline, _image);
         numberOfCampaigns++;
 
         return numberOfCampaigns - 1;
     }
 
-    // Function to donate to a campaign
+    /**
+     * @notice Allows users to donate to a specific campaign.
+     * @param _id ID of the campaign to donate to
+     */
     function donateToCampaign(uint256 _id) public payable {
         require(_id < numberOfCampaigns, "Invalid id");
-
-        uint256 amount = msg.value;
+        require(msg.value > 0, "Cannot donate 0 ether");
 
         Campaign storage campaign = campaigns[_id];
-
-        // require(block.timestamp < campaign.deadline, "Cannot fund after the deadline");
-        require(amount > 0, "Cannot donate 0 ether");
-        require(campaign.amountCollected + amount <= campaign.target, "Should not exceed campaign target");
+        require(campaign.amountCollected + msg.value <= campaign.target, "Should not exceed campaign target");
         require(!campaign.canceled, "Cannot donate to a canceled campaign");
 
-        campaign.amountCollected += amount;
+        campaign.amountCollected += msg.value;
         campaign.donators.push(msg.sender);
-        campaign.donations.push(amount);
+        campaign.donations.push(msg.value);
 
-        // Add payment details for the donator
         userPayments[msg.sender].push(PaymentDetail({
             campaignId: _id,
-            amount: amount,
+            amount: msg.value,
             timestamp: block.timestamp,
-            paymentType : "donation"
+            paymentType: "donation"
         }));
 
-        emit DonationReceived(_id,campaign.owner, msg.sender, amount);
-        emit CampaignAmountUpdated(_id,campaign.owner, campaign.amountCollected);
+        emit DonationReceived(_id, campaign.owner, msg.sender, msg.value);
+        emit CampaignAmountUpdated(_id, campaign.owner, campaign.amountCollected);
     }
 
-    // Function to withdraw funds (only by owner and after deadline)
+    /**
+     * @notice Allows the campaign owner to withdraw funds after the deadline.
+     * @param _id ID of the campaign to withdraw funds from
+     */
     function withdraw(uint256 _id) public {
-        Campaign storage campaign = campaigns[_id];
-
         require(_id < numberOfCampaigns, "Invalid id");
+
+        Campaign storage campaign = campaigns[_id];
         require(msg.sender == campaign.owner, "Only the owner can withdraw");
         require(block.timestamp >= campaign.deadline, "Cannot withdraw before the deadline");
         require(!campaign.withdrawn, "Funds already withdrawn");
         require(campaign.amountCollected > 0, "No funds to withdraw");
 
         uint256 amount = campaign.amountCollected;
-
         (bool sent, ) = payable(campaign.owner).call{value: amount}("");
         require(sent, "Withdrawal failed");
 
         campaign.withdrawn = true;
 
-        // Add withdrawal details for the owner
         userPayments[msg.sender].push(PaymentDetail({
             campaignId: _id,
             amount: amount,
             timestamp: block.timestamp,
-            paymentType : "withdrawal"
+            paymentType: "withdrawal"
         }));
 
-        emit FundsWithdrawn(_id,campaign.owner, amount);
+        emit FundsWithdrawn(_id, campaign.owner, amount);
     }
 
-    // Function to get all payment details of a user
-    function paymentDetails(address _user)
-        public
-        view
-        returns (PaymentDetail[] memory)
-    {
+    /**
+     * @notice Retrieves the payment history of a user.
+     * @param _user Address of the user
+     * @return An array of PaymentDetail structs
+     */
+    function paymentDetails(address _user) public view returns (PaymentDetail[] memory) {
         return userPayments[_user];
     }
 
-    function getDonators(uint256 _id)
-        public
-        view
-        returns (address[] memory, uint256[] memory)
-    {
+    /**
+     * @notice Retrieves the list of donators and their donations for a campaign.
+     * @param _id ID of the campaign
+     * @return Arrays of donator addresses and their corresponding donation amounts
+     */
+    function getDonators(uint256 _id) public view returns (address[] memory, uint256[] memory) {
         require(_id < numberOfCampaigns, "Invalid id");
         return (campaigns[_id].donators, campaigns[_id].donations);
     }
 
-
-    // Function to get all campaigns
+    /**
+     * @notice Retrieves all campaigns.
+     * @return An array of all Campaign structs
+     */
     function getCampaigns() public view returns (Campaign[] memory) {
         Campaign[] memory allCampaigns = new Campaign[](numberOfCampaigns);
 
         for (uint256 i = 0; i < numberOfCampaigns; i++) {
-            Campaign storage item = campaigns[i];
-            allCampaigns[i] = item;
+            allCampaigns[i] = campaigns[i];
         }
 
         return allCampaigns;
     }
 
-     function getCampaignById(uint256 _id) public view returns (Campaign memory) {
+    /**
+     * @notice Retrieves a campaign by its ID.
+     * @param _id ID of the campaign
+     * @return The Campaign struct
+     */
+    function getCampaignById(uint256 _id) public view returns (Campaign memory) {
         require(_id < numberOfCampaigns, "Invalid id");
         return campaigns[_id];
     }
 
+    /**
+     * @notice Cancels an active campaign and refunds all donors.
+     * @param _id ID of the campaign to cancel
+     */
     function cancelCampaign(uint256 _id) public {
-        Campaign storage campaign = campaigns[_id];
-
         require(_id < numberOfCampaigns, "Invalid id");
+
+        Campaign storage campaign = campaigns[_id];
         require(msg.sender == campaign.owner, "Only the owner can cancel the campaign");
         require(!campaign.canceled, "Campaign is already canceled");
-
-        // may be a redundant case
-        // require(!campaign.withdrawn, "Cannot cancel a campaign after funds are withdrawn");
-        
         require(block.timestamp < campaign.deadline, "Cannot cancel after the deadline");
 
-        // Refund all donors
-        for (uint256 i = 0; i < campaign.donators.length; i++) {
+         for (uint256 i = 0; i < campaign.donators.length; i++) {
             address donator = campaign.donators[i];
             uint256 donationAmount = campaign.donations[i];
 
