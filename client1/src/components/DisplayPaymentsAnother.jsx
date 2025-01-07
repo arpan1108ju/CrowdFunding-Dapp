@@ -8,6 +8,7 @@ import {
   CardBody,
 } from "@material-tailwind/react";
 import { useStateContext } from '../context';
+import { useTheme } from '../context/ThemeContext';
 
  
 let TABLE_HEAD = ["Campaign ID", "ETH", "Timestamp", "Type"];
@@ -18,6 +19,7 @@ const DisplayPaymentsAnother = ({ title, isLoading, payments }) => {
   const navigate = useNavigate();
 
   const {getCampaignById} = useStateContext();
+  const { isDarkMode } = useTheme();
 
   const handleTableRowClicked = async(campaignId) => {
      const campaign = await getCampaignById(campaignId);
@@ -29,7 +31,7 @@ const DisplayPaymentsAnother = ({ title, isLoading, payments }) => {
     
     return (
       <div> 
-      <h1 className="font-epilogue font-semibold text-[18px] text-white text-left">{title} ({payments?.length})</h1>
+      <h1 className="font-epilogue font-semibold text-[18px]  text-left">{title} ({payments?.length})</h1>
 
       <div className="flex flex-col mt-[20px] gap-[26px]">
         {isLoading && (
@@ -44,8 +46,8 @@ const DisplayPaymentsAnother = ({ title, isLoading, payments }) => {
 
         {!isLoading && payments && payments.length !== 0 
          && (
-        <div className="h-full w-full text-white">
-                <table className="w-full min-w-max table-auto text-left border">
+        <div className="h-full w-full ">
+                <table className={`w-full min-w-max table-auto text-left border ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
                   <thead>
                     <tr>
                       {TABLE_HEAD.map((head) => (
@@ -72,11 +74,11 @@ const DisplayPaymentsAnother = ({ title, isLoading, payments }) => {
                         },
                         index,
                       ) => {
-                        const classes = "p-4 border-y border-blue-gray-50";
+                        const classes = `p-4 border-y ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`;
                         return (
                           <tr key={timestamp} 
-                          className=' hover:cursor-pointer hover:bg-slate-900 ' 
-                          onClick={(e) => handleTableRowClicked(pId)} >
+                            className={`hover:cursor-pointer ${isDarkMode ? 'hover:bg-slate-900' : 'hover:bg-slate-100'}`}
+                            onClick={(e) => handleTableRowClicked(pId)} >
                             <td className={classes}>
                               <div className="flex items-center gap-3">
                                 <Typography
